@@ -1,5 +1,5 @@
 '''
-This module contains datasets which are used in the IDL script 'fentropy.pro'.
+This module contains datasets which are used in the IDL script 'entropy.pro'.
 '''
 
 from scipy.io import readsav

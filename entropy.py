@@ -1,5 +1,5 @@
 '''
-This module transfers 'fentropy.pro' into python code.
+This module transfers 'entropy.pro' into python code.
 '''
 
 import osse_datasets as od
