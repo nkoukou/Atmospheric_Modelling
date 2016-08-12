@@ -1,0 +1,9 @@
+# System files
+*.swp
+
+# Python extensions
+*.pyc
+*.py~
+
+# Initial directory
+initial_files/
