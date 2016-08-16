@@ -2,35 +2,28 @@
 This module transfers 'entropy.pro' into python code.
 '''
 
-import osse_datasets as od
-reload(od)
+from osse_datasets import gm_dict
 
 import numpy as np
 import matplotlib.pylab as plt
 import matplotlib.cm as cm
 
 # Load datasets from od module
-sw_gm00_dict = od.sw_gm00_dict
-sw_gm99_dict = od.sw_gm99_dict
-lw_gm00_dict = od.lw_gm00_dict
-lw_gm99_dict = od.lw_gm99_dict
 
-wvlen = sw_gm00_dict['wavelength']
-wvnum = lw_gm00_dict['wavenumber']
-wvlen_num = 1.0e7/wvnum
+wvlen = gm_dict['wvl']  # nm
+wvnum = gm_dict['wvn']  # cm^-1
+wvlen_num = 1.0e7/wvnum # nm
 
-gm_sw = 'global_mean_sw_rad'
-gm_lw = 'global_mean_lw_rad'
-sw_gm00_rad = sw_gm00_dict[gm_sw]
-sw_gm99_rad = sw_gm99_dict[gm_sw]
-lw_gm00_rad = lw_gm00_dict[gm_lw]
-lw_gm99_rad = lw_gm99_dict[gm_lw]
+sw_gm00_rad = gm_dict['sw00'] # !!!
+sw_gm99_rad = gm_dict['sw99'] #
+lw_gm00_rad = gm_dict['lw00'] #
+lw_gm99_rad = gm_dict['lw99'] #
 
 
 # Physical constants
-h=6.626e-34 # SI units
-c=2.998e8   # SI units
-kb=1.38e-23 # SI units
+c=2.998e8   # m s^-1
+kb=1.38e-23 # kg m^2 s^-2 K^-1
+h=6.626e-34 # J s = kg m^2 s^-1
 
 # Choose year 2000 or 2099
 def choose_year(year):
@@ -144,7 +137,8 @@ def plot_year_rad(year):
         ax_lwrd.plot(wvnum, lw_gm_rad[:,month]-lw_gm_tavg,
                     '-',color=colors[month],lw=0.2)
     
-    fig.suptitle('Global mean radiation for year '+str(year), size=16)
+    fig.suptitle('Global mean radiation for all months in year '
+                +str(year), size=16)
     ax_swrm.set_title('Mean SW rad',size=12)
     ax_swrm.set_xlabel('Wavelength ($nm$)')
     ax_swrd.set_title('Deviation of SW rad from annual mean',size=12)
@@ -271,8 +265,8 @@ def plot_swvslw(month,year):
     ax.set_xlabel('$log\ \lambda$')
     ax.legend(loc='upper right')
 
-
-
+plot_year_rad(2000)
+plt.show()
 
 
 
