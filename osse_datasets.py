@@ -14,6 +14,7 @@ coord_sw = readsav(griddir, python_dict=True)
 # earth_grid = {'lat':coord_sw['lat'], 'lon':coord_sw['lon']}
 a,b = np.meshgrid(coord_sw['lon'],coord_sw['lat'])
 earth_grid = np.dstack((b,a))
+np.save("datasets/earth_grid",earth_grid)
 
 # Global mean datasets
 
@@ -34,8 +35,11 @@ gm_lw00_dict = readsav(gm_lw00dir, python_dict=True)
 gm_lres_sw00_dict = readsav(gm_lres_sw00, python_dict=True)
 
 wvlen = gm_sw00_dict['wavelength']
+np.save("datasets/wvlen",wvlen)
 wvnum = gm_lw00_dict['wavenumber']
+np.save("datasets/wvnum",wvnum)
 wvlen_lres = gm_lres_sw00_dict['wavelength_lres']
+np.save("datasets/wvlen_lres",wvlen_lres)
 
 gm_sw00 = gm_sw00_dict[swkey]
 gm_lw00 = gm_lw00_dict[lwkey] 
@@ -46,69 +50,55 @@ gm_lw99 = readsav(gm_lw99dir, python_dict=True)[lwkey]
 gm_lres_sw99 = readsav(gm_lres_sw99, python_dict=True)[lreskey]
 gm_clr_lw99 = readsav(gm_clr_lw99, python_dict=True)[lwkey]
 
+np.save("datasets/gm_sw00",gm_sw00)
+np.save("datasets/gm_lw00",gm_lw00)
+np.save("datasets/gm_lres_sw00",gm_lres_sw00)
+np.save("datasets/gm_clr_lw00",gm_clr_lw00)
+np.save("datasets/gm_sw99",gm_sw99)
+np.save("datasets/gm_lw99",gm_lw99)
+np.save("datasets/gm_lres_sw99",gm_lres_sw99)
+np.save("datasets/gm_clr_lw99",gm_clr_lw99)
+
 # 2000 & 2099 SW and LW datasets
 
 core = "/b30.042a.cam2.h0.20"
-sw00_dict = {}; sw99_dict = {}
-lw00_dict = {}; lw99_dict = {}
-lres_sw00_dict = {}; lres_sw99_dict = {}
-clr_lw00_dict = {}; clr_lw99_dict = {}
 for m in range(1,13):
     if m<10: mstr = '0'+str(m)
     else: mstr = str(m)
-    sw00dir = "link_osse_sw/2000"+core+"00-"+mstr+".sav"
-    lw00dir = "link_osse_lw/2000"+core+"00-"+mstr+".sav"
-    swl00dir = "link_osse_sw/2000"+core+"00-"+mstr+"_lres.sav"
-    lwc00dir = "link_osse_lw/2000"+core+"00-"+mstr+"_clrsky.sav"
-    sw99dir = "link_osse_sw/2099"+core+"99-"+mstr+".sav"
-    lw99dir = "link_osse_lw/2099"+core+"99-"+mstr+".sav"
-    swl99dir = "link_osse_sw/2099"+core+"99-"+mstr+"_lres.sav"
-    lwc99dir = "link_osse_lw/2099"+core+"99-"+mstr+"_clrsky.sav"
-    sw00_dict[mstr] = readsav(sw00dir, python_dict=True)['sw_rad']
-    lw00_dict[mstr] = readsav(lw00dir, python_dict=True)['lw_rad']
-    lres_sw00_dict[mstr] = readsav(swl00dir, python_dict=True)['sw_rad_lres']
-    clr_lw00_dict[mstr] = readsav(lwc00dir, python_dict=True)['lw_rad']
-    sw99_dict[mstr] = readsav(sw99dir, python_dict=True)['sw_rad']
-    lw99_dict[mstr] = readsav(lw99dir, python_dict=True)['lw_rad']
-    lres_sw99_dict[mstr] = readsav(swl99dir, python_dict=True)['sw_rad_lres']
-    clr_lw99_dict[mstr] = readsav(lwc99dir, python_dict=True)['lw_rad']
-
-
-gm_dict = {'sw00':gm_sw00, 'lw00':gm_lw00, 'sw99':gm_sw99, 'lw99':gm_lw99,
-           'wvl':wvlen, 'wvn':wvnum}
-lc_gm_dict = {'sw00':gm_lres_sw00, 'lw00':gm_clr_lw00, 'sw99':gm_lres_sw99,
-              'lw99':gm_clr_lw99, 'wvl':wvlen_lres, 'wvn':wvnum}
-w00_dict = {'sw':sw00_dict, 'lw':lw00_dict, 'wvl':wvlen, 'wvn':wvnum,
-            'grid':earth_grid}
-w99_dict = {'sw':sw99_dict, 'lw':lw99_dict, 'wvl':wvlen, 'wvn':wvnum,
-            'grid':earth_grid}
-lc_w00_dict = {'sw':lres_sw00_dict, 'lw':clr_lw00_dict, 'wvl':wvlen_lres,
-               'wvn':wvnum, 'grid':earth_grid}
-lc_w99_dict = {'sw':lres_sw99_dict, 'lw':clr_lw99_dict, 'wvl':wvlen_lres,
-               'wvn':wvnum, 'grid':earth_grid}
-
-gm_pk = open('gm_dict.pkl','wb')
-pk.dump(gm_dict, gm_pk)
-gm_pk.close()
-lc_gm_pk = open('lc_gm_dict.pkl','wb')
-pk.dump(lc_gm_dict, lc_gm_pk)
-lc_gm_pk.close()
-w00_pk = open('w00_dict.pkl','wb')
-pk.dump(w00_dict, w00_pk)
-w00_pk.close()
-w99_pk = open('w99_dict.pkl','wb')
-pk.dump(w99_dict, w99_pk)
-w99_pk.close()
-lc_w00_pk = open('lc_w00_dict.pkl','wb')
-pk.dump(lc_w00_dict, lc_w00_pk)
-lc_w00_pk.close()
-lc_w99_pk = open('lc_w99_dict.pkl','wb')
-pk.dump(lc_w99_dict, lc_w99_pk)
-lc_w99_pk.close()
-
-
-
-
+    
+    sw00dir = "link_osse_sw/2000%s00-%s.sav" % (core, mstr)
+    lw00dir = "link_osse_lw/2000%s00-%s.sav" % (core, mstr)
+    swl00dir = "link_osse_sw/2000%s00-%s_lres.sav" % (core, mstr)
+    lwc00dir = "link_osse_lw/2000%s00-%s_clrsky.sav" % (core, mstr)
+    sw99dir = "link_osse_sw/2099%s99-%s.sav" % (core, mstr)
+    lw99dir = "link_osse_lw/2099%s99-%s.sav" % (core, mstr)
+    swl99dir = "link_osse_sw/2099%s99-%s_lres.sav" % (core, mstr)
+    lwc99dir = "link_osse_lw/2099%s99-%s_clrsky.sav" % (core, mstr)
+    
+    fid = readsav(sw00dir, python_dict=True)['sw_rad']
+    name = 'datasets/sw00%s' % (mstr)
+    np.save(name,fid)
+    fid = readsav(lw00dir, python_dict=True)['lw_rad']
+    name = 'datasets/lw00%s' % (mstr)
+    np.save(name,fid)
+    fid = readsav(swl00dir, python_dict=True)['sw_rad_lres']
+    name = 'datasets/lres_sw00%s' % (mstr)
+    np.save(name,fid)
+    fid = readsav(lwc00dir, python_dict=True)['lw_rad']
+    name = 'datasets/clr_lw00%s' % (mstr)
+    np.save(name,fid)
+    fid = readsav(sw99dir, python_dict=True)['sw_rad']
+    name = 'datasets/sw99%s' % (mstr)
+    np.save(name,fid)
+    fid = readsav(lw99dir, python_dict=True)['lw_rad']
+    name = 'datasets/lw99%s' % (mstr)
+    np.save(name,fid)
+    fid = readsav(swl99dir, python_dict=True)['sw_rad_lres']
+    name = 'datasets/lres_sw99%s' % (mstr)
+    np.save(name,fid)
+    fid = readsav(lwc99dir, python_dict=True)['lw_rad']
+    name = 'datasets/clr_lw99%s' % (mstr)
+    np.save(name,fid)
 
 
 

@@ -2,24 +2,19 @@
 This module transfers 'entropy.pro' into python code.
 '''
 
-import pickle as pk
 import numpy as np
 import matplotlib.pylab as plt
 import matplotlib.cm as cm
 
 # Load datasets
-dataset = open("datasets/gm_dict.pkl",'rb')
-gm_dict = pk.load(dataset)
-dataset.close()
-
-wvlen = gm_dict['wvl']  # nm
-wvnum = gm_dict['wvn']  # cm^-1
+wvlen = np.load('datasets/wvlen.npy') # nm
+wvnum = np.load('datasets/wvnum.npy') # cm^-1
 wvlen_num = 1.0e7/wvnum # nm
 
-sw_gm00_rad = gm_dict['sw00'] # !!!
-sw_gm99_rad = gm_dict['sw99'] #
-lw_gm00_rad = gm_dict['lw00'] #
-lw_gm99_rad = gm_dict['lw99'] #
+sw_gm00_rad = np.load('datasets/gm_sw00.npy') # !!!
+sw_gm99_rad = np.load('datasets/gm_sw99.npy') #
+lw_gm00_rad = np.load('datasets/gm_lw00.npy') #
+lw_gm99_rad = np.load('datasets/gm_lw99.npy') #
 
 
 # Physical constants
