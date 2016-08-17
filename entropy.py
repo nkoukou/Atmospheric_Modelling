@@ -9,12 +9,12 @@ import matplotlib.cm as cm
 # Load datasets
 wvlen = np.load('datasets/wvlen.npy') # nm
 wvnum = np.load('datasets/wvnum.npy') # cm^-1
-wvlen_num = 1.0e7/wvnum # nm
+wvlen_num = 1.0e7/wvnum               # nm
 
-sw_gm00_rad = np.load('datasets/gm_sw00.npy') # !!!
-sw_gm99_rad = np.load('datasets/gm_sw99.npy') #
-lw_gm00_rad = np.load('datasets/gm_lw00.npy') #
-lw_gm99_rad = np.load('datasets/gm_lw99.npy') #
+gm_sw00_rad = np.load('datasets/gm_sw00.npy') # uW cm^-2 sr^-1 nm^-1
+gm_sw99_rad = np.load('datasets/gm_sw99.npy') # uW cm^-2 sr^-1 nm^-1
+gm_lw00_rad = np.load('datasets/gm_lw00.npy') # W cm^-2 sr^-1 cm
+gm_lw99_rad = np.load('datasets/gm_lw99.npy') # W cm^-2 sr^-1 cm
 
 
 # Physical constants
@@ -22,45 +22,40 @@ c=2.998e8   # m s^-1
 kb=1.38e-23 # kg m^2 s^-2 K^-1
 h=6.626e-34 # J s = kg m^2 s^-1
 
-a = [[1,2,3],[2,3,4]]
-
-
-
-# Choose year 2000 or 2099
+# Utility functions
 def choose_year(year):
     '''
-    Determines all variables depending on the year of choice.
-    Involves correction for sw rad by a factor of 1000.
+    Determines radiation variables depending on the year of choice.
+    Involves correction for sw rad by a factor of 1000. !!!
     '''
-    if year==2000:
-        sw_gm00_tavg, lw_gm00_tavg = 0, 0
-        for month in range(12):
-            sw_gm00_tavg += sw_gm00_rad[:,month]
-            lw_gm00_tavg += lw_gm00_rad[:,month]
-        sw_gm00_tavg, lw_gm00_tavg = sw_gm00_tavg/12.0, lw_gm00_tavg/12.0
-        return sw_gm00_rad, lw_gm00_rad, sw_gm00_tavg, lw_gm00_tavg
-    elif year==2099:
-        sw_gm99_tavg, lw_gm99_tavg = 0, 0
-        for month in range(12):
-            sw_gm99_tavg += sw_gm99_rad[:,month]
-            lw_gm99_tavg += lw_gm99_rad[:,month]
-        sw_gm99_tavg, lw_gm99_tavg = sw_gm99_tavg/12.0, lw_gm99_tavg/12.0
-        return sw_gm99_rad, lw_gm99_rad, sw_gm99_tavg, lw_gm99_tavg
+    if year==2000: return gm_sw00_rad, gm_lw00_rad
+    elif year==2099: return gm_sw99_rad, gm_lw99_rad
+
+def tavg(rad_ent):
+    '''
+    Calculates annual average of radiation or entropy.
+    '''
+    return rad_ent.mean(axis=1)
 
 # Conversion functions
 # Fix units in docstring !!!
 def radtoent(rad,radtype='sw'):
     '''
-    Converts array of radiation intensity to array of entropy
+    Converts array of radiation intensity to array of entropy.
+    
+    Needs radiation in W m^-2 sr^-1 m.
+    Returns entropy in mW m^-2 sr^-1 K^-1 nm^-1.
     '''
     if radtype=='sw':
-        wvl=wvlen
-        iconst=1.0e-11*wvl*wvl
+        wvl = wvlen
+        iconst = 1.0e-11*wvl*wvl
+        iconst = iconst[:,None]
     elif radtype=='lw':
-        wvl=wvlen_num
-        iconst=1.0e2
+        wvl = wvlen_num
+        iconst = 1.0e2
     wvn = 1.0e9/wvl
-    econst=1.0e-6*wvn*wvn
+    econst = 1.0e-6*wvn*wvn
+    econst, wvn = econst[:,None], wvn[:,None]
     
     intens = iconst*rad
     y = intens/(2*h*c*c*wvn**3)
@@ -69,14 +64,15 @@ def radtoent(rad,radtype='sw'):
 
 def radtorad(rad,radtype='sw'):
     '''
-    Converts radiation to units W m-2 Sr-1 nm-1
+    Converts radiation to units W m^-2 sr^-1 nm^-1
     '''
     if radtype=='sw':
-        wvln=wvlen
-        rconst= 1.0e-2
+        wvln = wvlen
+        rconst = 1.0e-2
     elif radtype=='lw':
-        wvln=wvnum
-        rconst= 1.0e-3*wvnum*wvnum
+        wvln = wvnum
+        rconst = 1.0e-3*wvnum*wvnum
+        rconst = rconst[:,None]
     
     return rconst*rad
 
@@ -124,18 +120,20 @@ def plot_year_rad(year):
     fig, ((ax_swrm,ax_swrd),(ax_lwrm,ax_lwrd))\
     = plt.subplots(2,2,figsize=(9,7))
     
-    sw_gm_rad, lw_gm_rad, sw_gm_tavg, lw_gm_tavg = choose_year(year)
+    gm_sw_rad, gm_lw_rad= choose_year(year)
+    gm_sw_tavg = tavg(gm_sw_rad)
+    gm_lw_tavg = tavg(gm_lw_rad)
     
     colors = cm.rainbow(np.linspace(0, 1, 12))
     
     for month in range(12):
-        ax_swrm.plot(wvlen,sw_gm_rad[:,month],
+        ax_swrm.plot(wvlen,gm_sw_rad[:,month],
                     '-',color=colors[month],lw=0.2)
-        ax_swrd.plot(wvlen,sw_gm_rad[:,month]-sw_gm_tavg,
+        ax_swrd.plot(wvlen,gm_sw_rad[:,month]-gm_sw_tavg,
                     '-',color=colors[month],lw=0.2)
-        ax_lwrm.plot(wvnum, lw_gm_rad[:,month],
+        ax_lwrm.plot(wvnum, gm_lw_rad[:,month],
                     '-',color=colors[month],lw=0.2)
-        ax_lwrd.plot(wvnum, lw_gm_rad[:,month]-lw_gm_tavg,
+        ax_lwrd.plot(wvnum, gm_lw_rad[:,month]-gm_lw_tavg,
                     '-',color=colors[month],lw=0.2)
     
     fig.suptitle('Global mean radiation for all months in year '
@@ -153,20 +151,20 @@ def plot_year_rad(year):
 def plot_month_rad(month):
     fig, ((ax_swr_ann,ax_swrdiff),(ax_lwr_ann,ax_lwrdiff))\
     = plt.subplots(2,2,figsize=(9,7))
-    ax_swr_ann.plot(wvlen,sw_gm00_rad[:,month],
+    ax_swr_ann.plot(wvlen,gm_sw00_rad[:,month],
                 '-',lw=0.2,color='b', label='2000')
-    ax_swr_ann.plot(wvlen,sw_gm99_rad[:,month],
+    ax_swr_ann.plot(wvlen,gm_sw99_rad[:,month],
                 '-',lw=0.2,color='g', label='2099')
     ax_swrdiff.plot(wvlen,
-      sw_gm99_rad[:,month]-sw_gm00_rad[:,month],
+      gm_sw99_rad[:,month]-gm_sw00_rad[:,month],
       '-',lw=0.2,color='r')
     
-    ax_lwr_ann.plot(wvnum, lw_gm00_rad[:,month],
+    ax_lwr_ann.plot(wvnum, gm_lw00_rad[:,month],
                 '-',lw=0.2,color='b', label='2000')
-    ax_lwr_ann.plot(wvnum, lw_gm99_rad[:,month],
+    ax_lwr_ann.plot(wvnum, gm_lw99_rad[:,month],
                 '-',lw=0.2,color='g', label='2099')
     ax_lwrdiff.plot(wvnum,
-      lw_gm99_rad[:,month]-lw_gm00_rad[:,month],
+      gm_lw99_rad[:,month]-gm_lw00_rad[:,month],
       '-',lw=0.2,color='r')
     
     fig.suptitle('Global mean radiation for month '+str(month+1), size=16)
@@ -191,10 +189,10 @@ def plot_month_rad(month):
 def plot_ent_month(month):
     fig, ((ax_sw00,ax_lw00),(ax_sw99,ax_lw99))\
     = plt.subplots(2,2,figsize=(9,7))
-    ent_sw00 = radtoent(sw_gm00_rad[:,month],'sw')
-    ent_sw99 = radtoent(sw_gm99_rad[:,month],'sw')
-    ent_lw00 = radtoent(lw_gm00_rad[:,month],'lw')
-    ent_lw99 = radtoent(lw_gm99_rad[:,month],'lw')
+    ent_sw00 = radtoent(gm_sw00_rad[:,month],'sw')
+    ent_sw99 = radtoent(gm_sw99_rad[:,month],'sw')
+    ent_lw00 = radtoent(gm_lw00_rad[:,month],'lw')
+    ent_lw99 = radtoent(gm_lw99_rad[:,month],'lw')
     
     ax_sw00.plot(wvlen,ent_sw00)
     ax_sw99.plot(wvlen,ent_sw99)
@@ -266,9 +264,6 @@ def plot_swvslw(month,year):
     ax.set_xlabel('$log\ \lambda$')
     ax.legend(loc='upper right')
 
-plot_year_rad(2000)
-plot_ent_rad_diff(9,radtype='sw')
-plt.show()
 
 
 

@@ -9,25 +9,23 @@ import numpy as np
 # Latitude and longitude datasets
 
 griddir = "link_osse_sw/2000/wlscale_lat_lon.sav"
-
 coord_sw = readsav(griddir, python_dict=True)
-# earth_grid = {'lat':coord_sw['lat'], 'lon':coord_sw['lon']}
 a,b = np.meshgrid(coord_sw['lon'],coord_sw['lat'])
 earth_grid = np.dstack((b,a))
 np.save("datasets/earth_grid",earth_grid)
 
-# Global mean datasets
+# Global mean and wavelength datasets
 
 gm_sw00dir = "link_osse_sw/global_mean/sw_osse_a2_global_mean_2000.sav"
 gm_lw00dir = "link_osse_lw/global_mean/lw_osse_a2_global_mean_2000.sav"
 gm_lres_sw00 = "link_osse_sw/global_mean/sw_osse_a2_global_mean_lres_2000.sav"
-gm_clr_lw00 = "link_osse_lw/global_mean/lw_osse_a2_global_mean_2000_clrsky.sav"
+gm_clr_lw00 = "link_osse_lw/global_meanlw_osse_a2_global_mean_2000_clrsky.sav"
 gm_sw99dir = "link_osse_sw/global_mean/sw_osse_a2_global_mean_2099.sav"
 gm_lw99dir = "link_osse_lw/global_mean/lw_osse_a2_global_mean_2099.sav"
 gm_lres_sw99 = "link_osse_sw/global_mean/sw_osse_a2_global_mean_lres_2099.sav"
-gm_clr_lw99 = "link_osse_lw/global_mean/lw_osse_a2_global_mean_2000_clrsky.sav"
-
-swkey, lwkey = 'global_mean_sw_rad', 'global_mean_lw_rad'
+gm_clr_lw99 = "link_osse_lw/global_meanlw_osse_a2_global_mean_2000_clrsky.sav"
+swkey = 'global_mean_sw_rad'
+lwkey = 'global_mean_lw_rad'
 lreskey = 'global_mean_sw_rad_lres'
 
 gm_sw00_dict = readsav(gm_sw00dir, python_dict=True)
@@ -99,6 +97,4 @@ for m in range(1,13):
     fid = readsav(lwc99dir, python_dict=True)['lw_rad']
     name = 'datasets/clr_lw99%s' % (mstr)
     np.save(name,fid)
-
-
 
