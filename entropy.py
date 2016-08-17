@@ -2,13 +2,15 @@
 This module transfers 'entropy.pro' into python code.
 '''
 
-from osse_datasets import gm_dict
-
+import pickle as pk
 import numpy as np
 import matplotlib.pylab as plt
 import matplotlib.cm as cm
 
-# Load datasets from od module
+# Load datasets
+dataset = open("datasets/gm_dict.pkl",'rb')
+gm_dict = pk.load(dataset)
+dataset.close()
 
 wvlen = gm_dict['wvl']  # nm
 wvnum = gm_dict['wvn']  # cm^-1
@@ -24,6 +26,10 @@ lw_gm99_rad = gm_dict['lw99'] #
 c=2.998e8   # m s^-1
 kb=1.38e-23 # kg m^2 s^-2 K^-1
 h=6.626e-34 # J s = kg m^2 s^-1
+
+a = [[1,2,3],[2,3,4]]
+
+
 
 # Choose year 2000 or 2099
 def choose_year(year):
@@ -266,6 +272,7 @@ def plot_swvslw(month,year):
     ax.legend(loc='upper right')
 
 plot_year_rad(2000)
+plot_ent_rad_diff(9,radtype='sw')
 plt.show()
 
 
