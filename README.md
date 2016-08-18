@@ -19,7 +19,10 @@ READ FELDMAN
 entropy.py Qs:
 
 why *1000 correction?,
-CHECK FROM rad_flux (included) ONWARDS
 why log lambda?,
 why SW&LW so different in joint plot?,
 export plots?
+
+glob_ent.py Qs:
+why stand alone calculations of entropy differ from function?
+check this ^ with entropy.py

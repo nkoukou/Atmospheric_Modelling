@@ -7,15 +7,15 @@ import matplotlib.pylab as plt
 import matplotlib.cm as cm
 
 # Load datasets
+# SW rad is corrected by a factor of 1000
 wvlen = np.load('datasets/wvlen.npy') # nm
 wvnum = np.load('datasets/wvnum.npy') # cm^-1
 wvlen_num = 1.0e7/wvnum               # nm
 
-gm_sw00_rad = np.load('datasets/gm_sw00.npy') # uW cm^-2 sr^-1 nm^-1
-gm_sw99_rad = np.load('datasets/gm_sw99.npy') # uW cm^-2 sr^-1 nm^-1
-gm_lw00_rad = np.load('datasets/gm_lw00.npy') # W cm^-2 sr^-1 cm
-gm_lw99_rad = np.load('datasets/gm_lw99.npy') # W cm^-2 sr^-1 cm
-
+gm_sw00_rad = 1000*np.load('datasets/gm_sw00.npy') # uW cm^-2 sr^-1 nm^-1
+gm_sw99_rad = 1000*np.load('datasets/gm_sw99.npy') # uW cm^-2 sr^-1 nm^-1
+gm_lw00_rad = np.load('datasets/gm_lw00.npy')      # W cm^-2 sr^-1 cm
+gm_lw99_rad = np.load('datasets/gm_lw99.npy')      # W cm^-2 sr^-1 cm
 
 # Physical constants
 c=2.998e8   # m s^-1
@@ -26,7 +26,6 @@ h=6.626e-34 # J s = kg m^2 s^-1
 def choose_year(year):
     '''
     Determines radiation variables depending on the year of choice.
-    Involves correction for sw rad by a factor of 1000. !!!
     '''
     if year==2000: return gm_sw00_rad, gm_lw00_rad
     elif year==2099: return gm_sw99_rad, gm_lw99_rad
@@ -38,7 +37,6 @@ def tavg(rad_ent):
     return rad_ent.mean(axis=1)
 
 # Conversion functions
-# Fix units in docstring !!!
 def radtoent(rad,radtype='sw'):
     '''
     Converts array of radiation intensity to array of entropy.
@@ -232,7 +230,6 @@ def plot_ent_rad_diff(month,radtype='sw'):
     ax_eann.plot(wvlog,wvl*ent99,'-',lw=0.2,color='g', label='2099')
     ax_rdiff.plot(wvlog,wvl*(rad99-rad00))
     ax_ediff.plot(wvlog,wvl*(ent99-ent00))
-    print np.log(-wvl*(ent99-ent00))
     
     fig.suptitle('Entropy and radiation difference between 2000 and 2099',
                  size=16)
@@ -252,7 +249,7 @@ def plot_ent_rad_diff(month,radtype='sw'):
     ax_rdiff.set_xlabel('$log\ \lambda$')
     ax_ediff.set_xlabel('$log\ \lambda$')
     plt.tight_layout()
-plot_ent_rad_diff(3)
+
 def plot_swvslw(month,year):
     srad, lrad = choose_year(year)[0][:,month], choose_year(year)[1][:,month]
     
@@ -263,7 +260,5 @@ def plot_swvslw(month,year):
     ax.set_title('SW and LW radiation for year '+str(year))
     ax.set_xlabel('$log\ \lambda$')
     ax.legend(loc='upper right')
-
-plt.show()
 
 
