@@ -77,7 +77,7 @@ def radtorad(rad,radtype='sw'):
 def rad_flux(year=2000,radtype='sw'):
     '''
     Integrates radiation over wavelength to get radiative flux.
-    The units are W m^-2 sr^-1 K^-1.
+    The units are W m^-2 sr^-1.
     '''
     if radtype=='sw':
         wvl = wvlen
@@ -96,7 +96,7 @@ def rad_flux(year=2000,radtype='sw'):
 def ent_flux(year=2000,radtype='sw'):
     '''
     Integrates entropy over wavelength to get radiative flux.
-    The units are mW m^-2 sr^-1.
+    The units are mW m^-2 sr^-1 K^-1.
     '''
     if radtype=='sw':
         wvl = wvlen
