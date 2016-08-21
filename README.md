@@ -3,18 +3,20 @@ Entropy and intensity calculations
 Temporarily, issues are listed below:
 -------------------------------------
 
-read papers (FELDMAN) / bash scripting / unix / GIT (priority)
+read papers (FELDMAN) / GIT (priority) / bash scripting
 
 ----
 glob_ent.py Qs:
 
-why stand alone calculations of entropy differ from function?
-check this ^ with entropy.py
-check this ^ with fluxes
 check numpy errors (div by 0 etc.)
+numerical integration?
+negative values in OSSE data?
+efficiency?
 --
 entropy.py Qs:
 
+in what conditions were the OSSE data taken?
+what papers correspond to this ^ (Feldman's?)?
 what does lres mean?
 why *1000 correction?
 why log lambda?

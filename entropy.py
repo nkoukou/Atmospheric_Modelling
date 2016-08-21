@@ -17,10 +17,10 @@ gm_sw99_rad = 1000*np.load('datasets/gm_sw99.npy') # uW cm^-2 sr^-1 nm^-1
 gm_lw00_rad = np.load('datasets/gm_lw00.npy')      # W cm^-2 sr^-1 cm
 gm_lw99_rad = np.load('datasets/gm_lw99.npy')      # W cm^-2 sr^-1 cm
 
-# Physical constants
-c=2.998e8   # m s^-1
-kb=1.38e-23 # kg m^2 s^-2 K^-1
-h=6.626e-34 # J s = kg m^2 s^-1
+# Physical constants (accuracy to 4sf)
+c=2.998e8    # m s^-1
+kb=1.381e-23 # kg m^2 s^-2 K^-1
+h=6.626e-34  # J s = kg m^2 s^-1
 
 # Utility functions
 def choose_year(year):
@@ -37,9 +37,23 @@ def tavg(rad_ent):
     return rad_ent.mean(axis=1)
 
 # Conversion functions
+def radtorad(rad,radtype='sw'):
+    '''
+    Converts radiation to units W m^-2 sr^-1 nm^-1
+    '''
+    if radtype=='sw':
+        rconst = 1.0e-2
+    elif radtype=='lw':
+        rconst = 1.0e-3*wvnum*wvnum
+        rconst = rconst[:,None]
+    return rconst*rad
+
 def radtoent(rad,radtype='sw'):
     '''
-    Converts array of radiation intensity to array of entropy.
+    Converts array of radiation intensity to array of entropy according to
+    formula 8 in 'Wu and Liu: Radiation Entropy Flux, published 14/05/2010'.
+    Approximates ln(1+y) ~ y - y*y/2 + y**3/3 (Maclaurin) for y < 1.0e-2 to
+    account for miscalculation of the np.log function (1.0e-2 is arbitrary).
     
     Needs radiation in W m^-2 sr^-1 m.
     Returns entropy in mW m^-2 sr^-1 K^-1 nm^-1.
@@ -57,22 +71,11 @@ def radtoent(rad,radtype='sw'):
     
     intens = iconst*rad
     y = intens/(2*h*c*c*wvn**3)
-    ent = econst*2*kb*c*wvn*wvn*((1+y)*np.log(1+y)-y*np.log(y))
-    return ent
-
-def radtorad(rad,radtype='sw'):
-    '''
-    Converts radiation to units W m^-2 sr^-1 nm^-1
-    '''
-    if radtype=='sw':
-        wvln = wvlen
-        rconst = 1.0e-2
-    elif radtype=='lw':
-        wvln = wvnum
-        rconst = 1.0e-3*wvnum*wvnum
-        rconst = rconst[:,None]
     
-    return rconst*rad
+    ent1 = np.where(y>=0.01, (1+y)*np.log(1+y), (1+y)*(y - y*y/2 + y**3/3))
+    ent2 = -y*np.log(y)
+    ent = econst*2*kb*c*wvn*wvn*(ent1+ent2)
+    return ent
 
 def rad_flux(year=2000,radtype='sw'):
     '''

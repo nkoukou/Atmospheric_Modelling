@@ -1,11 +1,12 @@
 '''
-This module studies radiation at a global scale
+This module studies radiation at a global scale.
 '''
 
 import numpy as np
 import matplotlib.pylab as plt
 from mpl_toolkits.basemap import Basemap, shiftgrid
 import calendar as cal
+import time
 
 # Load datasets
 grid = np.load('datasets/earth_grid.npy')
@@ -38,10 +39,8 @@ def radtorad(rad,radtype='sw'):
     Converts radiation to units W m^-2 sr^-1 nm^-1
     '''
     if radtype=='sw':
-        wvln = wvlen
         rconst = 1.0e-2
     elif radtype=='lw':
-        wvln = wvnum
         rconst = 1.0e-3*wvnum*wvnum
         rconst = rconst[:,None,None]
     return rconst*rad
@@ -66,8 +65,10 @@ def radtoent(rad,radtype='sw'):
     
     intens = iconst*rad
     y = intens/(2*h*c*c*wvn**3)
-    ent = np.where(y!=0.0,
-          econst*2*kb*c*wvn*wvn*((1+y)*np.log(1+y)-y*np.log(y)),0.0)
+    
+    ent1 = np.where(y>=0.01, (1+y)*np.log(1+y), (1+y)*(y - y*y/2 + y**3/3))
+    ent2 = -y*np.log(y)
+    ent = np.where(y!=0.0, econst*2*kb*c*wvn*wvn*(ent1+ent2), 0.0)
     return ent
 
 def rad_flux(rad,radtype='sw'):
@@ -185,9 +186,8 @@ def analyse_month(month, info=False):
         return sumup(sw_eflux), sumup(lw_eflux)
 
 
-analyse_month('0009')
-plt.show()
-
+#analyse_month('0009')
+#plt.show()
 
 
 
