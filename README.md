@@ -8,7 +8,6 @@ read papers (FELDMAN) / GIT (priority) / bash scripting
 ----
 glob_ent.py Qs:
 
-check numpy errors (div by 0 etc.)
 numerical integration?
 negative values in OSSE data?
 efficiency?

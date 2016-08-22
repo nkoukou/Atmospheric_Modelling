@@ -66,8 +66,10 @@ def radtoent(rad,radtype='sw'):
     intens = iconst*rad
     y = intens/(2*h*c*c*wvn**3)
     
+    np.seterr(all='ignore')
     ent1 = np.where(y>=0.01, (1+y)*np.log(1+y), (1+y)*(y - y*y/2 + y**3/3))
     ent2 = -y*np.log(y)
+    np.seterr(all='warn')
     ent = np.where(y!=0.0, econst*2*kb*c*wvn*wvn*(ent1+ent2), 0.0)
     return ent
 
@@ -115,19 +117,16 @@ def plot_flux(month, sw_flux, lw_flux, re='r'):
     
     This function plots global maps of given SW and LW fluxes.
     '''
-    if re=='r': s, u = 'radiation', '($W\ m^{-2}\ sr^{-1}$)'
-    elif re=='e': s, u = 'entropy', '($mW\ m^{-2}\ sr^{-1}\ K^{-1}$)'
+    s, u = is_re(re)
     
-    sw_flux, lons = shiftgrid(180.0, sw_flux, lon, start=False)
-    lw_flux, lons = shiftgrid(180.0, lw_flux, lon, start=False)
-    xx, yy = np.meshgrid(lons, lat)
+    xx, yy, sw_flux, lw_flux = shift_grid(sw_flux, lw_flux)
     
     fig = plt.figure(figsize=(12,10.5))
     fig.suptitle("Global "+s+" flux for "+month[1]+" "+month[0], fontsize=18)
     
     axsw = fig.add_subplot(211)
     axsw.set_title("SW flux", fontsize=15)
-    m = Basemap() #lat_0=0.0, lon_0=180.0
+    m = Basemap()
     m.drawmapboundary()
     m.drawcoastlines()
     m.contourf(xx,yy,sw_flux)
@@ -139,6 +138,46 @@ def plot_flux(month, sw_flux, lw_flux, re='r'):
     m.drawmapboundary()
     m.drawcoastlines()
     m.contourf(xx,yy,lw_flux)
+    m.colorbar(location='bottom', label='Flux '+u)
+    
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.925)
+
+def plot_diff(month1, month2, re='r', info=False):
+    '''
+    Parameter re takes the values 'r' and 'e' for radiation and entropy 
+    fluxes respectively.
+    
+    This function plots the difference of SW and LW fluxes between two months.
+    '''
+    s, u = is_re(re)
+    m1, m2 = calendar(month1), calendar(month2)
+    
+    fig = plt.figure(figsize=(12,10.5))
+    fig.suptitle("Difference of "+s+" flux between "+m1[1]+" "
+                 +m1[0]+" and "+m2[1]+" "+m2[0], fontsize=16)
+    
+    sw_flux1, lw_flux1 = flux_month(month1, re)
+    sw_flux2, lw_flux2 = flux_month(month2, re)
+    xx, yy, sw_flux1, lw_flux1 = shift_grid(sw_flux1, lw_flux1)
+    sw_flux2, lw_flux2 = shift_grid(sw_flux2, lw_flux2)[2:]
+    swf, lwf = sw_flux2-sw_flux1, lw_flux2-lw_flux1
+    if info: return xx, yy, swf, lwf
+    
+    axsw = fig.add_subplot(211)
+    axsw.set_title("SW flux difference", fontsize=14)
+    m = Basemap()
+    m.drawmapboundary()
+    m.drawcoastlines()
+    m.contourf(xx,yy,swf)
+    m.colorbar(location='bottom', label='Flux '+u)
+    
+    axlw = fig.add_subplot(212)
+    axlw.set_title("LW flux difference", fontsize=14)
+    m = Basemap()
+    m.drawmapboundary()
+    m.drawcoastlines()
+    m.contourf(xx,yy,lwf)
     m.colorbar(location='bottom', label='Flux '+u)
     
     plt.tight_layout()
@@ -161,8 +200,25 @@ def calendar(month):
     m = cal.month_name[m]
     return y, m
 
+def is_re(re):
+    if re=='r': s, u = 'radiation', '($W\ m^{-2}\ sr^{-1}$)'
+    elif re=='e': s, u = 'entropy', '($mW\ m^{-2}\ sr^{-1}\ K^{-1}$)'
+    return s, u
+
+def flux_month(month, re='r'):
+    sw_rad, lw_rad = loadrad(month)
+    if re=='r': s = rad_flux(sw_rad,'sw'); l = rad_flux(lw_rad,'lw')
+    elif re=='e': s = ent_flux(sw_rad,'sw'); l = ent_flux(lw_rad,'lw')
+    return s, l
+
+def shift_grid(sw_flux, lw_flux):
+    sw_flux, lons = shiftgrid(180.0, sw_flux, lon, start=False)
+    lw_flux, lons = shiftgrid(180.0, lw_flux, lon, start=False)
+    xx, yy = np.meshgrid(lons, lat)
+    return xx, yy, sw_flux, lw_flux
+
 # Main functions
-def analyse_month(month, info=False):
+def analyse_month(month, gmap=False, info=False):
     '''
     Parameter month must be of the form 'yymm' (e.g. '0001' corresponds
     to year 2000, month 01).
@@ -171,25 +227,20 @@ def analyse_month(month, info=False):
     globe. It can also provide useful information about the datasets
     (e.g. extreme values)
     '''
-    sw_rad, lw_rad = loadrad(month)
-    sw_rflux = rad_flux(sw_rad,'sw')
-    sw_eflux = ent_flux(sw_rad,'sw')
-    lw_rflux = rad_flux(lw_rad,'lw')
-    lw_eflux = ent_flux(lw_rad,'lw')
+    sw_rflux, lw_rflux = flux_month(month, re='r')
+    sw_eflux, lw_eflux = flux_month(month, re='e')
     
     month = calendar(month)
     
-    plot_flux(month, sw_rflux, lw_rflux, 'r')
-    plot_flux(month, sw_eflux, lw_eflux, 'e')
+    if gmap:
+        plot_flux(month, sw_rflux, lw_rflux, 'r')
+        plot_flux(month, sw_eflux, lw_eflux, 'e')
     
     if info:
         return sumup(sw_eflux), sumup(lw_eflux)
 
-
-#analyse_month('0009')
-#plt.show()
-
-
-
+plot_diff('0009','9909')
+analyse_month('0004', True, True)
+plt.show()
 
 

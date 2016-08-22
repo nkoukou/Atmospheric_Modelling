@@ -264,4 +264,6 @@ def plot_swvslw(month,year):
     ax.set_xlabel('$log\ \lambda$')
     ax.legend(loc='upper right')
 
-
+#plot_ent_rad_diff(9)
+#plot_year_rad(2000)
+#plt.show()
