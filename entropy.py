@@ -140,16 +140,16 @@ def plot_year_rad(year):
     
     fig.suptitle('Global mean radiation for all months in year '
                 +str(year), size=16)
-    ax_swrm.set_title('Mean SW rad',size=12)
+    ax_swrm.set_title('Mean SW radiation',size=12)
     ax_swrm.set_xlabel('Wavelength ($nm$)')
-    ax_swrd.set_title('Deviation of SW rad from annual mean',size=12)
+    ax_swrd.set_title('Deviation of SW radiation from annual mean',size=12)
     ax_swrd.set_xlabel('Wavelength ($nm$)')
-    ax_lwrm.set_title('Mean LW rad',size=12)
+    ax_lwrm.set_title('Mean LW radiation',size=12)
     ax_lwrm.set_xlabel('Wavenumber ($cm^{-1}$)')
-    ax_lwrd.set_title('Deviation of LW rad from annual mean',size=12)
+    ax_lwrd.set_title('Deviation of LW radiation from annual mean',size=12)
     ax_lwrd.set_xlabel('Wavenumber ($cm^{-1}$)')
     plt.tight_layout()
-
+plot_year_rad(2000)
 def plot_month_rad(month):
     fig, ((ax_swr_ann,ax_swrdiff),(ax_lwr_ann,ax_lwrdiff))\
     = plt.subplots(2,2,figsize=(9,7))

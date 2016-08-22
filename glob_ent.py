@@ -239,8 +239,8 @@ def analyse_month(month, gmap=False, info=False):
     if info:
         return sumup(sw_eflux), sumup(lw_eflux)
 
-plot_diff('0009','9909')
-analyse_month('0004', True, True)
+plot_diff('0009','0010')
+#analyse_month('0004', True, True)
 plt.show()
 
 

@@ -8,6 +8,7 @@ read papers (FELDMAN) / GIT (priority) / bash scripting
 ----
 glob_ent.py Qs:
 
+do for lres and clrsky
 numerical integration?
 negative values in OSSE data?
 efficiency?
