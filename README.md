@@ -6,18 +6,17 @@ Temporarily, issues are listed below:
 read papers (FELDMAN) / GIT (priority) / bash scripting
 
 ----
-glob_ent.py Qs:
+ToDo:
 
-do for lres and clrsky
-numerical integration?
-negative values in OSSE data?
-efficiency?
+why sw_flux is so different than lres_sw_flux?
+more graph types
+analyse graphs (more functions to compare them, physical reasoning,...)
+analyse gm data
 --
-entropy.py Qs:
+Code Qs:
 
-in what conditions were the OSSE data taken?
-what papers correspond to this ^ (Feldman's?)?
-what does lres mean?
-why *1000 correction?
-why log lambda?
-why SW&LW so different in joint plot?
+numerical integration?
+efficiency?
+negative values in OSSE data? *1000 correction? conditions when data taken?
+why log lambda in entropy.pro?
+why SW&LW so different in joint plotin entropy.py?

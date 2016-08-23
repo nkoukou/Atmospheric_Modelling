@@ -3,7 +3,6 @@ This module reads OSSE datasets from '/net/shamal/disk2/truths/' directory.
 '''
 
 from scipy.io import readsav
-import pickle as pk
 import numpy as np
 
 # Latitude and longitude datasets
