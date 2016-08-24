@@ -13,12 +13,12 @@ from ent_datasets import months_in_year
 grid = np.load('datasets/earth_grid.npy')
 lat, lon = grid[:,0,0], grid[0,:,1]
 
-wvlen = np.load('datasets/wvlen.npy') # nm
+wvlen = np.load('datasets/wvlen.npy')           # nm
 wvlen_lres = np.load('datasets/wvlen_lres.npy') # nm
-wvnum = np.load('datasets/wvnum.npy')      # cm^-1
-wvlen_num = 1.0e7/wvnum                    # nm
+wvnum = np.load('datasets/wvnum.npy')           # cm^-1
+wvlen_num = 1.0e7/wvnum                         # nm
 
-titles = ['SW', 'SW (low res)', 'LW', 'Clear sky LW']
+titles = ['SW (low res)', 'LW', 'Clear sky LW']
 
 def loadflux(month, re='r'):
     '''
@@ -33,11 +33,10 @@ def loadflux(month, re='r'):
     SW radiation units: uW cm^-2 sr^-1 nm^-1
     LW radiation units: W cm^-2 sr^-1 cm
     '''
-    sw = np.load('datasets/flux/sw%s%s.npy' % (re,month))
     swl = np.load('datasets/flux/lres_sw%s%s.npy' % (re,month))
     lw = np.load('datasets/flux/lw%s%s.npy' % (re,month))
     lwc = np.load('datasets/flux/clr_lw%s%s.npy' % (re,month))
-    return sw, swl, lw, lwc
+    return swl, lw, lwc
 
 # Plot functions
 def plot_flux(month, flux, re='r'):
@@ -61,7 +60,7 @@ def plot_flux(month, flux, re='r'):
         m.contourf(xx,yy,flux[i])
         m.colorbar(location='bottom', label='Flux '+u)
     plt.tight_layout()
-    #plt.subplots_adjust(top=0.925)
+    plt.subplots_adjust(top=0.925)
 
 def plot_diff(month1, month2, flux1, re='r', info=False):
     '''
@@ -93,7 +92,7 @@ def plot_diff(month1, month2, flux1, re='r', info=False):
         m.contourf(xx,yy,fdiff[i])
         m.colorbar(location='bottom', label='Flux '+u)
     plt.tight_layout()
-    #plt.subplots_adjust(top=0.925)
+    plt.subplots_adjust(top=0.925)
 
 # Utility functions
 def find_nans(arr):
@@ -127,7 +126,7 @@ def shift_grid(flux):
 def analyse_month(month, re='r', diff=None, gmap=True, info=False):
     '''
     Parameter month must be of the form 'yymm' (e.g. '0001' corresponds
-    to year 2000, month 01).
+    to year 2000, month 01 = January).
     
     This function plots SW & LW radiation and entropy fluxes across the 
     globe. It can also provide useful information about the datasets
@@ -136,7 +135,6 @@ def analyse_month(month, re='r', diff=None, gmap=True, info=False):
     flux = np.array(loadflux(month, re))
     if gmap:
         plot_flux(month, flux, re)
-        
         if diff is not None:
             for m in diff:
                 plot_diff(month, m, flux, re, info=False)
@@ -144,7 +142,7 @@ def analyse_month(month, re='r', diff=None, gmap=True, info=False):
     if info:
         return sumup(sw_eflux), sumup(lw_eflux)
 
-#analyse_month('0012', 'e', diff=['0011','9912'])
-#plt.show()
+analyse_month('0009', 'e', diff=['0008','0010','9909'])
+plt.show()
 
 

@@ -11,11 +11,6 @@ wvlen_lres = np.load('datasets/wvlen_lres.npy') # nm
 wvnum = np.load('datasets/wvnum.npy')           # cm^-1
 wvlen_num = 1.0e7/wvnum                         # nm
 
-# Physical constants
-c=2.998e8   # m s^-1
-kb=1.38e-23 # kg m^2 s^-2 K^-1
-h=6.626e-34 # J s = kg m^2 s^-1
-
 def loadrad(month, lc=False):
     '''
     Loads SW and LW radiation datasets which correspond to given month.
@@ -31,6 +26,11 @@ def loadrad(month, lc=False):
         sw = np.load('datasets/lres_sw%s.npy' % (month)) # uW cm^-2 sr^-1 nm^-1
         lw = np.load('datasets/clr_lw%s.npy' % (month))  # W cm^-2 sr^-1 cm
     return sw, lw
+
+# Physical constants
+c=2.998e8   # m s^-1
+kb=1.38e-23 # kg m^2 s^-2 K^-1
+h=6.626e-34 # J s = kg m^2 s^-1
 
 # Conversion functions
 def radtorad(rad,radtype='sw'):
@@ -53,7 +53,7 @@ def radtoent(rad,radtype='sw',lc=True):
     '''
     if radtype=='sw':
         if not lc: wvl = wvlen
-        elif lc: wvl = wvlen_lres[::-1]
+        elif lc: wvl = wvlen_lres
         iconst = 1.0e-11*wvl*wvl
         iconst = iconst[:,None,None]
     elif radtype=='lw':
@@ -80,7 +80,7 @@ def rad_flux(rad,radtype='sw',lc=True):
     '''
     if radtype=='sw':
         if not lc: wvl = wvlen
-        elif lc: wvl = wvlen_lres[::-1]
+        elif lc: wvl = wvlen_lres
     elif radtype=='lw':
         wvl = wvlen_num
     n = len(wvl)-1
@@ -90,6 +90,7 @@ def rad_flux(rad,radtype='sw',lc=True):
     flux = rad[0]*(wvl[0]-wvl[1])+rad[n]*(wvl[n-1]-wvl[n])
     for i in range(1,n-1):
         flux += 0.5*rad[i]*(wvl[i-1]-wvl[i+1])
+    if radtype=='sw' and lc: flux = -flux
     return flux
 
 def ent_flux(rad,radtype='sw',lc=True):
@@ -99,7 +100,7 @@ def ent_flux(rad,radtype='sw',lc=True):
     '''
     if radtype=='sw':
         if not lc: wvl = wvlen
-        elif lc: wvl = wvlen_lres[::-1]
+        elif lc: wvl = wvlen_lres
     elif radtype=='lw':
         wvl = wvlen_num
     n = len(wvl)-1
@@ -109,6 +110,7 @@ def ent_flux(rad,radtype='sw',lc=True):
     flux = ent[0]*(wvl[0]-wvl[1])+ent[n]*(wvl[n-1]-wvl[n])
     for i in range(1,n-1):
         flux += 0.5*ent[i]*(wvl[i-1]-wvl[i+1])
+    if radtype=='sw' and lc: flux = -flux
     return flux
 
 def flux_month(month, re='r', lc=False):
@@ -142,7 +144,6 @@ def export_all(yr, lc=False):
         np.save('datasets/flux/'+spre+'swe'+m, swe)
         np.save('datasets/flux/'+lpre+'lwe'+m, lwe)
         print 'DONE %s' % (m)
-
 
 
 
