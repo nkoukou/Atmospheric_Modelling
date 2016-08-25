@@ -8,13 +8,13 @@ read papers (FELDMAN) / GIT (priority) / bash scripting
 ----
 ToDo:
 
-more graph types
+fix function outputs (info etc.)
 analyse graphs (more functions to compare them, physical reasoning,...)
 analyse gm data
 --
 Code Qs:
 
-docstrings, redign (?)
+docstrings, redesign (?)
 numerical integration?
 efficiency?
 negative values in OSSE data? *1000 correction? conditions when data taken?
