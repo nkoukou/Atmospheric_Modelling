@@ -3,20 +3,22 @@ Entropy and intensity calculations
 Temporarily, issues are listed below:
 -------------------------------------
 
-read papers (FELDMAN) / GIT (priority) / bash scripting
+GIT (priority) / bash scripting
 
 ----
 ToDo:
 
-fix function outputs (info etc.)
+fix !!! in entropy.py
+
+read papers (FELDMAN)
 analyse graphs (more functions to compare them, physical reasoning,...)
 analyse gm data
 --
 Code Qs:
 
-docstrings, redesign (?)
+are months in correct order?
 numerical integration?
-efficiency?
 negative values in OSSE data? *1000 correction? conditions when data taken?
-why log lambda in entropy.pro?
-why SW&LW so different in joint plot in entropy.py?
+why log lambda in entropy.pro? why SW&LW so different in joint plot?
+docstrings, redesign (?)
+efficiency?

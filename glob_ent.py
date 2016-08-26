@@ -35,7 +35,7 @@ def loadflux(month, re='r'):
     swl = np.load('datasets/flux/lres_sw%s%s.npy' % (re,month))
     lw = np.load('datasets/flux/lw%s%s.npy' % (re,month))
     lwc = np.load('datasets/flux/clr_lw%s%s.npy' % (re,month))
-    return swl, lw, lwc
+    return np.array([swl, lw, lwc])
 
 titles = ['SW (low res)', 'LW', 'Clear sky LW']
 rad = {'swl':0, 'lw':1, 'lwc':2}
@@ -45,8 +45,8 @@ def plot_map(xx, yy, data, u):
     '''
     Plots a global map of the data provided.
     
-    Parameters correspond to londitude and latitude, data to be plotted
-    and units.
+    Parameters correspond to londitude and latitude, data to be plotted and 
+    units.
     '''
     m = Basemap()
     m.drawmapboundary()
@@ -54,16 +54,17 @@ def plot_map(xx, yy, data, u):
     m.contourf(xx,yy,data)
     m.colorbar(location='bottom', label='Flux '+u)
 
-def plot_flux(month, flux, re='r'):
+def plot_flux(month, flux, re='r', info=False):
     '''
     Plots global maps of given SW and LW fluxes.
     
     Parameter flux is an array of fluxes.
     '''
+    xx, yy, shflux = shift_grid(flux)
+    if info: return xx, yy, shflux
+    
     s, u = is_re(re)
     m = calendar(month)
-    xx, yy, shflux = shift_grid(flux)
-    
     fig = plt.figure()
     fig.suptitle("Global "+s+" flux for "+m[1]+" "+m[0], fontsize=16)
     for i in range(len(shflux)):
@@ -78,20 +79,19 @@ def plot_diff(month1, month2, flux1, re='r', info=False):
     Plots the difference of fluxes between two months.
     If info=True, the difference is returned and not plotted.
     
-    Parameter month2 corresponds to the month, month1 (with flux1) is
-    compared with.
+    Parameter month2 corresponds to the month, month1 (with flux1) is compared 
+    with.
     '''
-    s, u = is_re(re)
-    m1, m2 = calendar(month1), calendar(month2)
-    flux2 = np.array(loadflux(month2, re))
-    
-    fig = plt.figure()
-    fig.suptitle("Difference of "+s+" flux between "+m1[1]+" "
-                 +m1[0]+" and "+m2[1]+" "+m2[0], fontsize=16)
-    
+    flux2 = loadflux(month2, re)
     fdiff = flux1-flux2
     xx, yy, shfdiff = shift_grid(fdiff)
     if info: return xx, yy, shfdiff
+    
+    s, u = is_re(re)
+    m1, m2 = calendar(month1), calendar(month2)
+    fig = plt.figure()
+    fig.suptitle("Difference of "+s+" flux between "+m1[1]+" "
+                 +m1[0]+" and "+m2[1]+" "+m2[0], fontsize=16)
     
     for i in range(len(fdiff)):
         ax = fig.add_subplot(2,2,i+2)
@@ -111,15 +111,15 @@ def find_nans(arr):
 
 def sumup(arr):
     '''
-    Returns useful information about array arr (eg. extreme values)s.
+    Returns useful information about array arr (eg. extreme values).
     '''
     return {'shape':arr.shape, 'max':np.nanmax(arr), 'min':np.nanmin(arr),
             'nans':np.where(np.isnan(arr))[0].size}
 
 def calendar(month):
     '''
-    Converts a string of the form yymm (y for year, m for month) to yyyy
-    and the name of the corresponding month m (eg. input '0001' returns
+    Converts a string of the form yymm (y for year, m for month) to yyyy and 
+    the name of the corresponding month m (eg. input '0001' returns 
     output y, m = '2000', 'January'.
     '''
     y, m = month[:2], int(month[2:])
@@ -130,7 +130,7 @@ def calendar(month):
 
 def neighbour_months(month):
     '''
-    Returns the previous and next month as well as the same month in the other
+    Returns the previous and next month as well as the same month in the other 
     year (2000 or 2099).
     '''
     if month[:2]=='00': yr, notyr = 2000, 2099
@@ -147,8 +147,8 @@ def neighbour_months(month):
 
 def is_re(re):
     '''
-    Returns 'radiation' and 'entropy' to be used in titles and plot labels
-    for re = 'r' and 'e' respectively, with the corresponding flux units.
+    Returns 'radiation' and 'entropy' to be used in titles and plot labels for 
+    re = 'r' and 'e' respectively, with the corresponding flux units.
     '''
     if re=='r': s, u = 'radiation', '($W\ m^{-2}\ sr^{-1}$)'
     elif re=='e': s, u = 'entropy', '($mW\ m^{-2}\ sr^{-1}\ K^{-1}$)'
@@ -156,7 +156,7 @@ def is_re(re):
 
 def shift_grid(flux):
     '''
-    Shifts longitude and data arrays to match a map centred at
+    Shifts longitude and data arrays to match a map centred at 
     (lat, lon) = (0, 0).
     '''
     shift_flux = np.empty(flux.shape)
@@ -168,31 +168,36 @@ def shift_grid(flux):
 # Main functions
 def analyse_month(month, re='r', diff=None, gmap=True, info=False):
     '''
-    Plots SW & LW radiation and entropy fluxes across the 
-    globe. It can also call function sumup for the flux data of the month.
+    Plots SW & LW radiation and entropy fluxes across the globe. It can also 
+    call function sumup for the flux data of the month.
     
-    Parameter diff is a list of months to be compared with month, gmap and info
-    plot the relevant maps and provide sumup information if True respectively.
+    Parameter diff is a list of months to be compared with month, gmap and 
+    info plot the relevant maps and provide data information respectively, 
+    if True.
     '''
-    flux = np.array(loadflux(month, re))
-    print flux.shape
+    flux = loadflux(month, re)
     if gmap:
-        plot_flux(month, flux, re)
+        plot_flux(month, flux, re, info=False)
         if diff is not None:
             for m in diff:
                 plot_diff(month, m, flux, re, info=False)
     
     if info:
-        temp = []
-        for f in flux: temp.append(sumup(f))
-        return temp
+        suma, dflux, ddiff = {}, [], []
+        for f in range(len(flux)):
+            suma[rad.keys()[rad.values().index(f)]] = sumup(flux[f])
+        dflux.append(plot_flux(month, flux, re, info=True)[2])
+        for m in diff:
+            ddiff.append(plot_diff(month, m, flux, re, info=True)[2])
+        return suma, dflux, ddiff
 
 def spec_analysis(month, re='r', radtype='swl', gmap=True, info=False):
     '''
-    Plots monthly comparisons of specific type of flux across the globe
+    Plots monthly comparisons of specific type of flux across the globe 
     (SW, LW, Clear sky LW).
     
-    Parameter radtype ('swl', 'lw', 'lwc') determines the type of flux.
+    Parameter radtype ('swl', 'lw', 'lwc') determines the type of flux. 
+    Parameter info returns data on differences between months.
     '''
     flux = np.array([loadflux(month, re)[rad[radtype]]])
     s, u = is_re(re)
@@ -208,7 +213,7 @@ def spec_analysis(month, re='r', radtype='swl', gmap=True, info=False):
     xx, yy, shflux = shift_grid(flux)
     if gmap: plot_map(xx, yy, shflux[0], u)
     
-    fdiffs = []
+    fdiffs = [(xx, yy)]
     for n in range(len(neighbours)):
         ax = fig.add_subplot(2,2,n+2)
         m2 = calendar(neighbours[n])
@@ -216,15 +221,30 @@ def spec_analysis(month, re='r', radtype='swl', gmap=True, info=False):
         flux2 = np.array([loadflux(neighbours[n], re)[rad[radtype]]])
         fdiff = flux - flux2
         xx, yy, fdiff = shift_grid(fdiff)
-        fdiffs.append((xx, yy, fdiff[0]))
+        fdiffs.append(fdiff[0])
         if gmap: plot_map(xx, yy, fdiff[0], u)
     plt.tight_layout()
     #plt.subplots_adjust(top=0.925)
     if info: return fdiffs
 
-analyse_month('9902', re='r', diff=None)
+#analyse_month('9902', re='r', diff=['9902','0004'])
 #plot_diff('9907','9908', loadflux('9907', 'e'), re='e')
-#spec_analysis('9902', 'r', 'lw')
+#suma, dflux, ddiff = analyse_month('9902', re='r', diff=['9902','0004'], gmap=False, info=True)
+#fdiffs = spec_analysis('9902', 'r', 'lw',True,True)
+#print fdiffs
+'''
+for m in months_in_year(2000):
+    spec_analysis(m, 'r', 'swl')
+    print 'DONE ', m
 plt.show()
+'''
+
+
+
+
+
+
+
+
 
 

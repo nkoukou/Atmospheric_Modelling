@@ -1,6 +1,6 @@
 '''
-This module converts radiation intensity datasets to radiation and entropy flux
-datasets.
+This module converts radiation intensity datasets to radiation and entropy 
+flux datasets.
 '''
 
 import numpy as np
@@ -14,10 +14,12 @@ wvlen_num = 1.0e7/wvnum                         # nm
 def loadrad(month, lc=False):
     '''
     Loads SW and LW radiation datasets which correspond to given month.
-    Parameter month must be of the form 'yymm' (e.g. '0001' corresponds
-    to year 2000, month 01).
     
-    SW radiation is corrected by a factor of 1000.
+    Parameter month must be of the form 'yymm' (e.g. '0001' corresponds to 
+    year 2000, month 01), while if lc is True, lres and clrsky data are loaded 
+    instead.
+    
+    SW radiation is corrected by a factor of 1000 if not lres.
     '''
     if not lc:
         sw = 1000*np.load('datasets/sw%s.npy' % (month)) # uW cm^-2 sr^-1 nm^-1
@@ -46,9 +48,12 @@ def radtorad(rad,radtype='sw'):
 
 def radtoent(rad,radtype='sw',lc=True):
     '''
-    Converts array of radiation intensity to array of entropy.
+    Converts array of radiation intensity to array of entropy according to 
+    formula 8 in 'Wu and Liu: Radiation Entropy Flux, published 14/05/2010'. 
+    Approximates ln(1+y) ~ y - y*y/2 + y**3/3 (Maclaurin) for y < 1.0e-2 to 
+    account for miscalculation of the np.log function (1.0e-2 is arbitrary).
     
-    Needs radiation in W m^-2 sr^-1 m.
+    Needs radiation in W m^-2 sr^-1 m. 
     Returns entropy in mW m^-2 sr^-1 K^-1 nm^-1.
     '''
     if radtype=='sw':
@@ -75,7 +80,7 @@ def radtoent(rad,radtype='sw',lc=True):
 
 def rad_flux(rad,radtype='sw',lc=True):
     '''
-    Integrates radiation over wavelength to get radiative flux.
+    Integrates radiation over wavelength to get radiative flux. 
     The units are W m^-2 sr^-1.
     '''
     if radtype=='sw':
@@ -95,7 +100,7 @@ def rad_flux(rad,radtype='sw',lc=True):
 
 def ent_flux(rad,radtype='sw',lc=True):
     '''
-    Integrates entropy over wavelength to get radiative flux.
+    Integrates entropy over wavelength to get entropy flux. 
     The units are mW m^-2 sr^-1 K^-1.
     '''
     if radtype=='sw':
@@ -114,6 +119,10 @@ def ent_flux(rad,radtype='sw',lc=True):
     return flux
 
 def flux_month(month, re='r', lc=False):
+    '''
+    Returns SW and LW fluxes for given month. Parameter re determines whether 
+    fluxes are radiative or entropic.
+    '''
     sw_rad, lw_rad = loadrad(month, lc)
     if re=='r':
         sw = rad_flux(sw_rad,'sw')
@@ -124,6 +133,10 @@ def flux_month(month, re='r', lc=False):
     return sw, lw
 
 def months_in_year(year):
+    '''
+    Returns list of all months in given year, in the form yymm 
+    (eg. January 2000 is returned as '0001').
+    '''
     yr = str(year)[-2:]
     months = []
     for m in range(1,13):
@@ -133,6 +146,9 @@ def months_in_year(year):
     return months
 
 def export_all(yr, lc=False):
+    '''
+    Calculates and exports all flux data for given year yr.
+    '''
     for m in months_in_year(yr):
         swr, lwr = flux_month(m,'r', lc)
         print 'RAD %s' % (m)

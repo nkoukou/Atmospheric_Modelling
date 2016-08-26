@@ -1,5 +1,6 @@
 '''
-This module reads OSSE datasets from '/net/shamal/disk2/truths/' directory.
+This module reads OSSE datasets from '/net/shamal/disk2/truths/' directory 
+and saves them as .npy files in the '/home/solice/nkoukou/datasets/' directory.
 '''
 
 from scipy.io import readsav
