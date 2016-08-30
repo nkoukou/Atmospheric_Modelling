@@ -52,7 +52,11 @@ def plot_map(xx, yy, data, u):
     m.drawmapboundary()
     m.drawcoastlines()
     m.contourf(xx,yy,data)
-    m.colorbar(location='bottom', label='Flux '+u)
+    m.colorbar(location='bottom', label='Flux '+u, pad="10%")
+    parallels = np.arange(-90, 90, 22.5)
+    meridians = np.arange(-180,180, 30)
+    m.drawparallels(parallels, labels=[1,0,0,0])
+    m.drawmeridians(meridians, labels=[0,0,0,1])
 
 def plot_flux(month, flux, re='r', info=False):
     '''
@@ -227,11 +231,14 @@ def spec_analysis(month, re='r', radtype='swl', gmap=True, info=False):
     #plt.subplots_adjust(top=0.925)
     if info: return fdiffs
 
-#analyse_month('9902', re='r', diff=['9902','0004'])
+analyse_month('0002', re='e', diff=neighbour_months('0002'))
 #plot_diff('9907','9908', loadflux('9907', 'e'), re='e')
 #suma, dflux, ddiff = analyse_month('9902', re='r', diff=['9902','0004'], gmap=False, info=True)
 #fdiffs = spec_analysis('9902', 'r', 'lw',True,True)
 #print fdiffs
+#m=months_in_year(2000)
+#spec_analysis(m[6], 'r', 'swl')
+plt.show()
 '''
 for m in months_in_year(2000):
     spec_analysis(m, 'r', 'swl')

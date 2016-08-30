@@ -1,6 +1,9 @@
 '''
 This module transfers 'entropy.pro' into python code. It analyses global mean 
 data provided by OSSE.
+
+I - radiation intensity; F - I integrated over wavelength
+L - entropy intensity; J - L integrated over wavelength
 '''
 
 import numpy as np
@@ -209,12 +212,11 @@ def plot_month(month, re='r'):
             gm00 = radtoent(loadgmrad(2000)[i], title)[:,month-1]
             gm99 = radtoent(loadgmrad(2099)[i], title)[:,month-1]
         wvln, xu, yu = choose_band(title, re=re)
-        axm.plot(wvln, gm00, color='b', lw=0.2, label='2000')
-        axm.plot(wvln, gm99, color='g', lw=0.2, label='2099')
-        axd.plot(wvln, gm99-gm00, color='r', lw=0.2)
+        axm.plot(wvln, gm00, color='b', lw=0.5, label='2000')
+        axm.plot(wvln, gm99, color='g', lw=0.5, label='2099')
+        axd.plot(wvln, gm99-gm00, color='r', lw=0.5)
         axm.set_title(title+' '+c+' for years 2000 and 2099', size=14)
-        axd.set_title('Difference of '+title+
-                      ' '+c+' between 2000 and 2099', size=14)
+        axd.set_title('Difference between 2000 and 2099', size=14)
         axm.set_xlabel(xu)
         axd.set_xlabel(xu)
         axm.yaxis.set_major_formatter(mtk.FormatStrFormatter('%.2e'))
@@ -224,7 +226,7 @@ def plot_month(month, re='r'):
         leg = axm.legend(loc='upper right')
         for legobj in leg.legendHandles:
             legobj.set_linewidth(2.0)
-    plt.tight_layout(pad=-1.4, w_pad=-10.2, h_pad=-1.0)
+    plt.tight_layout(pad=-1., w_pad=-6.2, h_pad=-1.0)
     plt.subplots_adjust(top=0.925)
 
 def plot_flux(radtype='SW'):
@@ -236,8 +238,6 @@ def plot_flux(radtype='SW'):
     ent99 = ent_flux(2099, radtype)
     rad00 = rad_flux(2000, radtype)
     rad99 = rad_flux(2099, radtype)
-    print ent00
-    print ent99
     
     fig, ((axr, axrd), (axe, axed)) = plt.subplots(2,2)
     fig.suptitle('Global mean radiation and entropy fluxes in 2000 and 2099',
@@ -267,83 +267,70 @@ def plot_flux(radtype='SW'):
     leg = axe.legend(loc='upper right')
     plt.tight_layout()
     plt.subplots_adjust(top=0.925)
-# --------------------------------------------------------------------------- #
-# --------------------------------------------------------------------------- #
-# --------------------------------------------------------------------------- #
-def plot_diff(month, radtype='SW'):
+
+def plot_year_diff(month, radtype='SW'):
     '''
-    Plots difference in wvl*rad !!!.
+    Plots difference in wvl*rad !!!. Fix y label+title
+    '''
     
     rad00 = loadgmrad(2000)[titles.index(radtype)]
     rad99 = loadgmrad(2099)[titles.index(radtype)]
+    ent00 = radtoent(rad00,radtype)[:,month-1]
+    ent99 = radtoent(rad99,radtype)[:,month-1]
+    rad00 = radtorad(rad00,radtype)[:,month-1]
+    rad99 = radtorad(rad99,radtype)[:,month-1]
     
-    wvln, xu, yu = choose_band(title, re=re, ent=True)
-    '''
     if radtype=='SW':
         wvl = wvlen
-        rad00 = loadgmrad(2000)[0]
-        rad99 = loadgmrad(2099)[0]
-        s='SW'
-    elif radtype=='LW':
+    elif radtype=='LW' or radtype=='clear sky LW':
         wvl = wvlen_num
-        rad00 = loadgmrad(2000)[1]
-        rad99 = loadgmrad(2099)[1]
-        s='LW'
     wvlog = np.log(wvl)
-    rad00 = radtorad(rad00,radtype)[:,month]
-    rad99 = radtorad(rad99,radtype)[:,month]
-    ent00 = radtoent(rad00,radtype)[:,month]
-    ent99 = radtoent(rad99,radtype)[:,month]
     
-    fig, ((ax_rann,ax_eann),(ax_rdiff,ax_ediff))\
-    = plt.subplots(2,2,figsize=(9,7))
-    ax_rann.plot(wvlog,wvl*rad00,'-',lw=0.2,color='b', label='2000')
-    ax_rann.plot(wvlog,wvl*rad99,'-',lw=0.2,color='g', label='2099')
-    ax_eann.plot(wvlog,wvl*ent00,'-',lw=0.2,color='b', label='2000')
-    ax_eann.plot(wvlog,wvl*ent99,'-',lw=0.2,color='g', label='2099')
-    ax_rdiff.plot(wvlog,wvl*(rad99-rad00))
-    ax_ediff.plot(wvlog,wvl*(ent99-ent00))
-    
-    fig.suptitle('Entropy and radiation difference between 2000 and 2099',
+    fig, ((axr,axrd),(axe,axed)) = plt.subplots(2,2)
+    fig.suptitle(radtype+' entropy and radiation flux in '+cal.month_name[month],
                  size=16)
-    ax_rann.set_title(s+' radiation',size=12)
-    rleg = ax_rann.legend(loc='upper right')
-    for legobj in rleg.legendHandles:
-        legobj.set_linewidth(2.0)
-    ax_eann.set_title('Entropy of '+s+' radiation',size=12)
-    eleg = ax_eann.legend(loc='upper right')
-    for legobj in eleg.legendHandles:
-        legobj.set_linewidth(2.0)
-    ax_rdiff.set_title('Difference in radiation between 2000 and 2099',
-                       size=12)
-    ax_ediff.set_title('Difference in entropy between 2000 and 2099',size=12)
-    ax_rann.set_xlabel('$log\ \lambda$')
-    ax_eann.set_xlabel('$log\ \lambda$')
-    ax_rdiff.set_xlabel('$log\ \lambda$')
-    ax_ediff.set_xlabel('$log\ \lambda$')
+    axr.plot(wvlog,wvl*rad00,color='b', label='2000')
+    axr.plot(wvlog,wvl*rad99,color='g', label='2099')
+    axe.plot(wvlog,wvl*ent00,color='b', label='2000')
+    axe.plot(wvlog,wvl*ent99,color='g', label='2099')
+    axrd.plot(wvlog,wvl*(rad99-rad00),color='r')
+    axed.plot(wvlog,wvl*(ent99-ent00),color='r')
+    
+    axr.set_title(radtype+' radiation',size=12)
+    axe.set_title('Entropy of '+radtype+' radiation',size=12)
+    axrd.set_title('Difference between 2000 and 2099', size=12)
+    axed.set_title('Difference between 2000 and 2099',size=12)
+    xu = '$log\ \lambda$'
+    yur = '$F\ (W\ m^{-2}\ sr^{-1})$'
+    yue = '$J\ (mW\ m^{-2}\ sr^{-1}\ K^{-1})$'
+    axr.set_xlabel(xu); axr.set_ylabel(yur)
+    axe.set_xlabel(xu); axe.set_ylabel(yue)
+    axrd.set_xlabel(xu); axrd.set_ylabel(yur)
+    axed.set_xlabel(xu); axed.set_ylabel(yue)
+    axr.legend(loc='upper right')
+    axe.legend(loc='upper right')
     plt.tight_layout()
 
-def plot_swvslw(month,year):
+def plot_type_diff(month, year):
     '''
-    Plots difference in wvl*rad !!!.
+    Plots difference in wvl*rad !!!. Fix y label+title
     '''
-    srad, lrad = loadgmrad(year)[0][:,month], loadgmrad(year)[1][:,month]
+    srad = wvlen*radtorad(loadgmrad(year)[0],'SW')[:,month-1]
+    lrad = wvlen_num*radtorad(loadgmrad(year)[1],'LW')[:,month-1]
     
-    fig, ax = plt.subplots(1,1,figsize=(9,7))
-    ax.plot(np.log(wvlen),wvlen*srad,'-',lw=0.5,color='b', label='SW')
-    ax.plot(np.log(wvlen_num),wvlen_num*lrad,'-',lw=0.5,color='r',\
-           label='LW')
-    ax.set_title('SW and LW radiation for year '+str(year))
+    fig, ax = plt.subplots(1,1)
+    ax.plot(np.log(wvlen),srad,color='b', label='SW')
+    ax.plot(np.log(wvlen_num),lrad,color='g', label='LW')
+    ax.set_title('SW and LW radiation flux for '+cal.month_name[month]+' '+str(year))
     ax.set_xlabel('$log\ \lambda$')
+    ax.set_ylabel('$F\ (W\ m^{-2}\ sr^{-1})$')
     ax.legend(loc='upper right')
 
 #plot_swvslw(4,2099)
-#plot_month_rad(5)
-#plot_month_rad(5,'e')
-plot_flux('LW')
+#plot_month(11,'e')
+plot_year_diff(12, 'LW')
+plot_type_diff(9,2099)
 plt.show()
-
-
 
 
 

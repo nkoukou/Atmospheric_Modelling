@@ -11,8 +11,6 @@ ToDo:
 fix !!! in entropy.py
 
 read papers (FELDMAN)
-analyse graphs (more functions to compare them, physical reasoning,...)
-analyse gm data
 --
 Code Qs:
 
