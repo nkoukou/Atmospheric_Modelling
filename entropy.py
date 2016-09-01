@@ -20,8 +20,8 @@ wvlen_num = 1.0e7/wvnum               # nm
 
 def loadgmrad(year):
     '''
-    Loads global mean SW and LW radiation datasets which correspond to given 
-    year.
+    Loads global mean SW and LW radiation intensity datasets which correspond 
+    to given year.
     
     SW radiation is corrected by a factor of 1000 if not lres.
     SW radiation units: uW cm^-2 sr^-1 nm^-1
@@ -44,13 +44,13 @@ h=6.626e-34  # J s = kg m^2 s^-1
 # Utility functions
 def tavg(rad_ent):
     '''
-    Calculates annual average of radiation or entropy.
+    Calculates annual average of radiation or entropy intensity.
     '''
     return rad_ent.mean(axis=1)
 
 def choose_band(title, re='r'):
     '''
-    Chooses wvlen/wvnum and units depending on the type of radiation.
+    Chooses wvlen/wvnum and units depending on the type of radiation intensity.
     '''
     if title=='SW':
         wvln, xu = wvlen, '$Wavelength\ (nm)$'
@@ -114,7 +114,7 @@ def radtoent(rad,radtype='SW'):
 
 def rad_flux(year=2000,radtype='SW'):
     '''
-    Integrates radiation over wavelength to get radiative flux.
+    Integrates radiation intensity over wavelength to get radiative flux.
     The units are W m^-2 sr^-1.
     '''
     if radtype=='SW':
@@ -136,7 +136,7 @@ def rad_flux(year=2000,radtype='SW'):
 
 def ent_flux(year=2000,radtype='SW'):
     '''
-    Integrates entropy over wavelength to get radiative flux.
+    Integrates entropy intensity over wavelength to get radiative flux.
     The units are mW m^-2 sr^-1 K^-1.
     '''
     if radtype=='SW':
@@ -159,8 +159,8 @@ def ent_flux(year=2000,radtype='SW'):
 # Plot functions
 def plot_year_rad(year):
     '''
-    Plots radiation against wavelength/wavenumber, and the radiation deviation 
-    from the mean for the given year.
+    Plots radiation intensity against wavelength/wavenumber, and the radiation 
+    deviation from the mean for the given year.
     '''
     gm_rad = loadgmrad(year)
     gm_tavg = []
@@ -194,8 +194,8 @@ def plot_year_rad(year):
 
 def plot_month(month, re='r'):
     '''
-    Plots radiation or entropy (re= 'r' or 'e') in 2000 and 2099 as well as 
-    the difference between the two years for given month.
+    Plots radiation or entropy intensities (re= 'r' or 'e') in 2000 and 2099 
+    as well as the difference between the two years for given month.
     '''
     c = is_re(re)
     fig = plt.figure()
@@ -270,7 +270,9 @@ def plot_flux(radtype='SW'):
 
 def plot_year_diff(month, radtype='SW'):
     '''
-    Plots difference in wvl*rad !!!. Fix y label+title
+    Plots difference in wvl*rad or wvl*ent against log of wvl. The y axis is 
+    not just radiation or entropy intensities so that the graph integrates 
+    correctly over the logarithm of wavelength which corresponds to the x axis.
     '''
     
     rad00 = loadgmrad(2000)[titles.index(radtype)]
@@ -287,8 +289,8 @@ def plot_year_diff(month, radtype='SW'):
     wvlog = np.log(wvl)
     
     fig, ((axr,axrd),(axe,axed)) = plt.subplots(2,2)
-    fig.suptitle(radtype+' entropy and radiation flux in '+cal.month_name[month],
-                 size=16)
+    fig.suptitle(radtype+' entropy and radiation flux in '
+                 +cal.month_name[month], size=16)
     axr.plot(wvlog,wvl*rad00,color='b', label='2000')
     axr.plot(wvlog,wvl*rad99,color='g', label='2099')
     axe.plot(wvlog,wvl*ent00,color='b', label='2000')
@@ -301,8 +303,8 @@ def plot_year_diff(month, radtype='SW'):
     axrd.set_title('Difference between 2000 and 2099', size=12)
     axed.set_title('Difference between 2000 and 2099',size=12)
     xu = '$log\ \lambda$'
-    yur = '$F\ (W\ m^{-2}\ sr^{-1})$'
-    yue = '$J\ (mW\ m^{-2}\ sr^{-1}\ K^{-1})$'
+    yur = '$\lambda I\ (W\ m^{-2}\ sr^{-1})$'
+    yue = '$\lambda L\ (mW\ m^{-2}\ sr^{-1}\ K^{-1})$'
     axr.set_xlabel(xu); axr.set_ylabel(yur)
     axe.set_xlabel(xu); axe.set_ylabel(yue)
     axrd.set_xlabel(xu); axrd.set_ylabel(yur)
@@ -313,7 +315,8 @@ def plot_year_diff(month, radtype='SW'):
 
 def plot_type_diff(month, year):
     '''
-    Plots difference in wvl*rad !!!. Fix y label+title
+    Plots wvl*rad for both SW and LW radiation against log of wvl for given 
+    month and year in the same plot.
     '''
     srad = wvlen*radtorad(loadgmrad(year)[0],'SW')[:,month-1]
     lrad = wvlen_num*radtorad(loadgmrad(year)[1],'LW')[:,month-1]
@@ -321,15 +324,16 @@ def plot_type_diff(month, year):
     fig, ax = plt.subplots(1,1)
     ax.plot(np.log(wvlen),srad,color='b', label='SW')
     ax.plot(np.log(wvlen_num),lrad,color='g', label='LW')
-    ax.set_title('SW and LW radiation flux for '+cal.month_name[month]+' '+str(year))
+    ax.set_title('SW and LW radiation flux for '+cal.month_name[month]+' '
+                 +str(year))
     ax.set_xlabel('$log\ \lambda$')
     ax.set_ylabel('$F\ (W\ m^{-2}\ sr^{-1})$')
     ax.legend(loc='upper right')
 
 #plot_swvslw(4,2099)
 #plot_month(11,'e')
-plot_year_diff(12, 'LW')
-plot_type_diff(9,2099)
+#plot_year_diff(12, 'LW')
+#plot_type_diff(9,2099)
 plt.show()
 
 

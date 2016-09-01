@@ -13,7 +13,8 @@ wvlen_num = 1.0e7/wvnum                         # nm
 
 def loadrad(month, lc=False):
     '''
-    Loads SW and LW radiation datasets which correspond to given month.
+    Loads SW and LW radiation intensity datasets which correspond to given 
+    month.
     
     Parameter month must be of the form 'yymm' (e.g. '0001' corresponds to 
     year 2000, month 01), while if lc is True, lres and clrsky data are loaded 
@@ -37,7 +38,7 @@ h=6.626e-34 # J s = kg m^2 s^-1
 # Conversion functions
 def radtorad(rad,radtype='sw'):
     '''
-    Converts radiation to units W m^-2 sr^-1 nm^-1
+    Converts radiation intensity to units W m^-2 sr^-1 nm^-1
     '''
     if radtype=='sw':
         rconst = 1.0e-2
@@ -80,7 +81,7 @@ def radtoent(rad,radtype='sw',lc=True):
 
 def rad_flux(rad,radtype='sw',lc=True):
     '''
-    Integrates radiation over wavelength to get radiative flux. 
+    Integrates radiation intensity over wavelength to get radiative flux. 
     The units are W m^-2 sr^-1.
     '''
     if radtype=='sw':
@@ -100,7 +101,7 @@ def rad_flux(rad,radtype='sw',lc=True):
 
 def ent_flux(rad,radtype='sw',lc=True):
     '''
-    Integrates entropy over wavelength to get entropy flux. 
+    Integrates entropy intensity over wavelength to get entropy flux. 
     The units are mW m^-2 sr^-1 K^-1.
     '''
     if radtype=='sw':

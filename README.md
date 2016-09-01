@@ -8,15 +8,8 @@ GIT (priority) / bash scripting
 ----
 ToDo:
 
-fix !!! in entropy.py
-
-read papers (FELDMAN)
+check exported graphs
+read papers (FELDMAN OSSE, BANNON, textbook)
+libradran doc
 --
-Code Qs:
-
-are months in correct order?
-numerical integration?
-negative values in OSSE data? *1000 correction? conditions when data taken?
-why log lambda in entropy.pro? why SW&LW so different in joint plot?
-docstrings, redesign (?)
-efficiency?
+Code Watch Out:

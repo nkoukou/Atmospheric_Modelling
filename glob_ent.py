@@ -21,7 +21,7 @@ wvlen_num = 1.0e7/wvnum                         # nm
 
 def loadflux(month, re='r'):
     '''
-    Loads SW and LW radiation datasets which correspond to given month.
+    Loads SW and LW radiation flux datasets which correspond to given month.
     
     SW radiation is corrected by a factor of 1000 if not lres.
     SW radiation units: uW cm^-2 sr^-1 nm^-1
@@ -209,8 +209,8 @@ def spec_analysis(month, re='r', radtype='swl', gmap=True, info=False):
     m = calendar(month)
     
     fig = plt.figure()
-    fig.suptitle("Comparison of "+titles[rad[radtype]]+" "+s+" flux for "
-    +m[1]+" "+m[0], fontsize=16)
+    fig.suptitle(titles[rad[radtype]]+" "+s+" flux comparison for "
+                 +m[1]+" "+m[0], fontsize=16)
     
     ax = fig.add_subplot(2,2,1)
     ax.set_title("Flux in "+m[1]+" "+m[0], fontsize=14)
@@ -231,27 +231,65 @@ def spec_analysis(month, re='r', radtype='swl', gmap=True, info=False):
     #plt.subplots_adjust(top=0.925)
     if info: return fdiffs
 
-analyse_month('0002', re='e', diff=neighbour_months('0002'))
+def analyse_month_mini(month, re='r', radtype='swl', export=False):
+    '''
+    Plots maps of given month for both 2000 and 2099 as well as a map with 
+    their difference.
+    '''
+    if month[:2]=='00':
+        month2, yr = '99'+month[2:], ['2000', '2099']
+    elif month[:2]=='99': month2, yr = '00'+month[2:], ['2099', '2000']
+    flux = np.array([loadflux(month, re)[rad[radtype]]])
+    flux2 = np.array([loadflux(month2, re)[rad[radtype]]])
+    s, u = is_re(re)
+    m = calendar(month)
+    
+    fig = plt.figure()
+    fig.suptitle(titles[rad[radtype]]+" "+s+" flux comparison for "+m[1],
+                 fontsize=16)
+    
+    ax = fig.add_subplot(2,2,1)
+    ax.set_title("Flux in "+m[1]+" "+yr[0], fontsize=14)
+    xx, yy, shflux = shift_grid(flux)
+    plot_map(xx, yy, shflux[0], u)
+    
+    ax2 = fig.add_subplot(2,2,2)
+    ax2.set_title("Flux in "+m[1]+" "+yr[1], fontsize=14)
+    xx, yy, shflux2 = shift_grid(flux2)
+    plot_map(xx, yy, shflux2[0], u)
+    
+    axd = fig.add_subplot(2,2,3)
+    axd.set_title("Difference in flux", fontsize=14)
+    xx, yy, shfluxd = shift_grid(flux2-flux)
+    plot_map(xx, yy, shfluxd[0], u)
+    
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.925)
+    
+    if export:
+        fig.savefig('datasets/maps/%s_%s_%s.png' % (re,radtype,month[2:]))
+        plt.close(fig)
+
+def export(year):
+    '''
+    Exports all maps from analyse_month_mini with given year as a parameter.
+    '''
+    for m in months_in_year(2000):
+        analyse_month_mini(m, re='r', radtype='swl', export=True)
+        analyse_month_mini(m, re='r', radtype='lwc', export=True)
+        analyse_month_mini(m, re='r', radtype='lw', export=True)
+        analyse_month_mini(m, re='e', radtype='swl', export=True)
+        analyse_month_mini(m, re='e', radtype='lwc', export=True)
+        analyse_month_mini(m, re='e', radtype='lw', export=True)
+        print 'DONE ', m
+
+#analyse_month_mini('0001', re='r', radtype='swl', export=False)
 #plot_diff('9907','9908', loadflux('9907', 'e'), re='e')
 #suma, dflux, ddiff = analyse_month('9902', re='r', diff=['9902','0004'], gmap=False, info=True)
 #fdiffs = spec_analysis('9902', 'r', 'lw',True,True)
 #print fdiffs
-#m=months_in_year(2000)
-#spec_analysis(m[6], 'r', 'swl')
+#m=months_in_year(2099)
+#spec_analysis(m[8], 'e', 'lwc')
 plt.show()
-'''
-for m in months_in_year(2000):
-    spec_analysis(m, 'r', 'swl')
-    print 'DONE ', m
-plt.show()
-'''
-
-
-
-
-
-
-
-
 
 
