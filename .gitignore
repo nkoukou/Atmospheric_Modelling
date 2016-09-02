@@ -1,5 +1,6 @@
-# System files
+# Auto generated files
 *.swp
+randomseed
 
 # Python extensions
 *.pyc
@@ -7,9 +8,13 @@
 
 # Initial directory
 initial_files/
-datasets/
+libradtran/
 
 # Links
-link*
-
-
+Jo
+examples
+osse_lw
+osse_sw
+uvspec
+datasets
+data

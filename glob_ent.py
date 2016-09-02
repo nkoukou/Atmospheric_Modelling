@@ -283,13 +283,13 @@ def export(year):
         analyse_month_mini(m, re='e', radtype='lw', export=True)
         print 'DONE ', m
 
-#analyse_month_mini('0001', re='r', radtype='swl', export=False)
+#analyse_month_mini('0010', re='e', radtype='lw', export=False)
 #plot_diff('9907','9908', loadflux('9907', 'e'), re='e')
 #suma, dflux, ddiff = analyse_month('9902', re='r', diff=['9902','0004'], gmap=False, info=True)
 #fdiffs = spec_analysis('9902', 'r', 'lw',True,True)
 #print fdiffs
 #m=months_in_year(2099)
-#spec_analysis(m[8], 'e', 'lwc')
+#_analysis(m[8], 'e', 'lwc')
 plt.show()
 
 

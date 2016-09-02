@@ -8,7 +8,7 @@ import numpy as np
 
 # Latitude and longitude datasets
 
-griddir = "link_osse_sw/2000/wlscale_lat_lon.sav"
+griddir = "osse_sw/2000/wlscale_lat_lon.sav"
 coord_sw = readsav(griddir, python_dict=True)
 a,b = np.meshgrid(coord_sw['lon'],coord_sw['lat'])
 earth_grid = np.dstack((b,a))
@@ -16,14 +16,14 @@ np.save("datasets/earth_grid",earth_grid)
 
 # Global mean and wavelength datasets
 
-gm_sw00dir = "link_osse_sw/global_mean/sw_osse_a2_global_mean_2000.sav"
-gm_lw00dir = "link_osse_lw/global_mean/lw_osse_a2_global_mean_2000.sav"
-gm_lres_sw00 = "link_osse_sw/global_mean/sw_osse_a2_global_mean_lres_2000.sav"
-gm_clr_lw00 = "link_osse_lw/global_meanlw_osse_a2_global_mean_2000_clrsky.sav"
-gm_sw99dir = "link_osse_sw/global_mean/sw_osse_a2_global_mean_2099.sav"
-gm_lw99dir = "link_osse_lw/global_mean/lw_osse_a2_global_mean_2099.sav"
-gm_lres_sw99 = "link_osse_sw/global_mean/sw_osse_a2_global_mean_lres_2099.sav"
-gm_clr_lw99 = "link_osse_lw/global_meanlw_osse_a2_global_mean_2000_clrsky.sav"
+gm_sw00dir = "osse_sw/global_mean/sw_osse_a2_global_mean_2000.sav"
+gm_lw00dir = "osse_lw/global_mean/lw_osse_a2_global_mean_2000.sav"
+gm_lres_sw00 = "osse_sw/global_mean/sw_osse_a2_global_mean_lres_2000.sav"
+gm_clr_lw00 = "osse_lw/global_meanlw_osse_a2_global_mean_2000_clrsky.sav"
+gm_sw99dir = "osse_sw/global_mean/sw_osse_a2_global_mean_2099.sav"
+gm_lw99dir = "osse_lw/global_mean/lw_osse_a2_global_mean_2099.sav"
+gm_lres_sw99 = "osse_sw/global_mean/sw_osse_a2_global_mean_lres_2099.sav"
+gm_clr_lw99 = "osse_lw/global_meanlw_osse_a2_global_mean_2000_clrsky.sav"
 swkey = 'global_mean_sw_rad'
 lwkey = 'global_mean_lw_rad'
 lreskey = 'global_mean_sw_rad_lres'
@@ -64,14 +64,14 @@ for m in range(1,13):
     if m<10: mstr = '0'+str(m)
     else: mstr = str(m)
     
-    sw00dir = "link_osse_sw/2000%s00-%s.sav" % (core, mstr)
-    lw00dir = "link_osse_lw/2000%s00-%s.sav" % (core, mstr)
-    swl00dir = "link_osse_sw/2000%s00-%s_lres.sav" % (core, mstr)
-    lwc00dir = "link_osse_lw/2000%s00-%s_clrsky.sav" % (core, mstr)
-    sw99dir = "link_osse_sw/2099%s99-%s.sav" % (core, mstr)
-    lw99dir = "link_osse_lw/2099%s99-%s.sav" % (core, mstr)
-    swl99dir = "link_osse_sw/2099%s99-%s_lres.sav" % (core, mstr)
-    lwc99dir = "link_osse_lw/2099%s99-%s_clrsky.sav" % (core, mstr)
+    sw00dir = "osse_sw/2000%s00-%s.sav" % (core, mstr)
+    lw00dir = "osse_lw/2000%s00-%s.sav" % (core, mstr)
+    swl00dir = "osse_sw/2000%s00-%s_lres.sav" % (core, mstr)
+    lwc00dir = "osse_lw/2000%s00-%s_clrsky.sav" % (core, mstr)
+    sw99dir = "osse_sw/2099%s99-%s.sav" % (core, mstr)
+    lw99dir = "osse_lw/2099%s99-%s.sav" % (core, mstr)
+    swl99dir = "osse_sw/2099%s99-%s_lres.sav" % (core, mstr)
+    lwc99dir = "osse_lw/2099%s99-%s_clrsky.sav" % (core, mstr)
     
     fid = readsav(sw00dir, python_dict=True)['sw_rad']
     name = 'datasets/sw00%s' % (mstr)
