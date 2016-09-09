@@ -141,8 +141,7 @@ def months_in_year(year):
     yr = str(year)[-2:]
     months = []
     for m in range(1,13):
-        if m<10: mstr = '0'+str(m)
-        else: mstr = str(m)
+        mstr = str(m).zfill(2)
         months.append(yr+mstr)
     return months
 

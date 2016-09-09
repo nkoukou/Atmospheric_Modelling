@@ -61,8 +61,7 @@ np.save("datasets/gm_clr_lw99",gm_clr_lw99)
 
 core = "/b30.042a.cam2.h0.20"
 for m in range(1,13):
-    if m<10: mstr = '0'+str(m)
-    else: mstr = str(m)
+    mstr = str(m).zfill(2)
     
     sw00dir = "osse_sw/2000%s00-%s.sav" % (core, mstr)
     lw00dir = "osse_lw/2000%s00-%s.sav" % (core, mstr)
