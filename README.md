@@ -9,10 +9,9 @@ ToDo:
 
 1. exported graphs (colorbar consistent color, space between subplots)
 
-1. find (lat, lon) that correspond to sea level and study altitude
-2. Request all overlapping years (be careful with size)
-3. Make the necessary 3D fields (pay attention to temperature avging)
-4. How to import 3D fields in libradtran
+1. Request all overlapping years (be careful with size)
+2. Make the necessary 3D fields (pay attention to temperature avging)
+3. How to import 3D fields in libradtran
 
 1. Find derivative of array
 2. Wrap up code for matter entropy
