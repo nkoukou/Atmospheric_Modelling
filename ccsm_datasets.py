@@ -7,31 +7,27 @@ from netCDF4 import Dataset
 import numpy as np
 import matplotlib.pylab as plt
 
-kb=1.38e-23 # kg m^2 s^-2 K^-1
+# Physical constants
+kb=1.38e-23      # kg m^2 s^-2 K^-1
+T0 = 273.15      # K
+air0 = 1.2754e-3 # g cm^-3 (air density at T0 and P0=100kPa)
+
 # Import netCDF files
 m1 = "datasets/ccsm/b30.031.cam2.h0.0359-01.nc"
 m2 = "datasets/ccsm/b30.031.cam2.h0.0359-02.nc"
 m1 = Dataset(m1)
 m2 = Dataset(m2)
 
+# Testing data
 def show_vars(filename):
     for var in filename.variables.keys():
         print var, filename.variables[var].shape
 
-lon = m1.variables['lon'][:]                                # deg
-lat = m1.variables['lat'][:]                                # deg
-lev = m1.variables['lev'][:]                                # level
-P0 = m1.variables['P0'][:]                                  # Pa
-PS = m1.variables['PS'][0]                                  # Pa
-A = m1.variables['hyam'][:]                                 # fraction
-B = m1.variables['hybm'][:]                                 # fraction
-P = A[:,None,None]*P0 + B[:,None,None]*PS[None,:,:]         # Pa
-T = m1.variables['T'][0]                                    # K
-TS = m1.variables['TS'][0]                                  # K
-air_rho = P/(kb*T)*1.0e-6                                   # cm^-3
-
 #show_vars(m1)
-print m1.variables['time']
+m=m1.variables['Q'][0]-m1.variables['CLDLIQ'][0]
+print m.max()
+#print m1.variables['CLDTOT']
+# print m1.variables['CLOUD'][0][:,40,67]
 #print '---------'
 #print m1.variables['time']
 #for i in range(14,21):
@@ -40,6 +36,7 @@ print m1.variables['time']
 #plt.show()
 #print Deltah.mean(axis=(1,2))/Deltah.std(axis=(1,2))
 
+# Libradtran input file
 def constants(dataset):
     '''
     Returns arrays of latitude, longitude, level and constant P0, which are 
@@ -55,7 +52,7 @@ def constants(dataset):
         elif ln<0: lon.append('W '+str(-ln))
     lev = dataset.variables['lev'][:]       # level
     P0 = dataset.variables['P0'][:]         # Pa
-    date = str(dataset.variables['date'][0]+16000000)
+    date = str(dataset.variables['date'][0]+16000000) # !!! add 1600 years to fit year between 1900-2000
     time = date[:-4].zfill(4), date[-4:-2], date[-2:]
     return P0, lat, lon, lev, time
 
@@ -73,15 +70,62 @@ def variables(dataset, nlat, nlon):
     air_rho = P/(kb*T)*1.0e-4                                   # cm^-3
     z = dataset.variables['Z3'][0]/1000.0                       # km
     rQ = dataset.variables['RELHUM'][0]                         # percent
+    wc = dataset.variables['CLDLIQ'][0]*air0*T0/P0*P/T*100.0    # g cm^-3
+    ic = dataset.variables['CLDICE'][0]*air0*T0/P0*P/T*100.0    # g cm^-3
+    cfrac = dataset.variables['CLOUD'][0]                       # fraction
     return z[:,nlat,nlon], P[:,nlat,nlon], T[:,nlat,nlon], \
-           air_rho[:,nlat,nlon], rQ[:,nlat,nlon]
+           air_rho[:,nlat,nlon], rQ[:,nlat,nlon], \
+           wc[:,nlat,nlon], ic[:,nlat,nlon], cfrac[:,nlat,nlon]
 
-def atmosphere_profile(dataset, nlat, nlon, species=['H2O']):
+def spec_file(spec, lat, lon, z, Q, u):
+    '''
+    Creates mol_files for libradtran input.
+    '''
+    spec_file = open("libradtran/{0}_file.dat".format(spec), 'w')
+    spec_file.write('# {2} profile for (lat, lon) = ({0}, {1})\n'
+                    .format(lat, lon, spec))
+    spec_file.write('# {0:>8} {1:>11}\n'.format('z (km)', spec+' '+u))
+    for i in range(len(z)):
+        spec_file.write('{0:>10.3f} {1:>11.5f}\n'.format(z[i], Q[i]))
+    spec_file.close()
+
+def cloud_file(cf, wc, ic, lat, lon, z):
+    '''
+    Creates cloud files for libradtran input.
+    '''
+    wc_file = open("libradtran/wc_file.dat", 'w')
+    ic_file = open("libradtran/ic_file.dat", 'w')
+    cf_file = open("libradtran/cloudfrac_file.dat", 'w')
+    
+    wc_file.write('# Water cloud profile for (lat, lon) = ({0}, {1})\n'
+                    .format(lat, lon))
+    wc_file.write('# {0:>8} {1:>17} {2:>14}\n'
+                  .format('z (km)', 'LWC (g cm^-3)', 'R_eff (um)'))
+    ic_file.write('# Ice cloud profile for (lat, lon) = ({0}, {1})\n'
+                    .format(lat, lon))
+    ic_file.write('# {0:>8} {1:>17} {2:>14}\n'
+                  .format('z (km)', 'LWC (g cm^-3)', 'R_eff (um)'))
+    cf_file.write('# Cloud fraction profile for (lat, lon) = ({0}, {1})\n'
+                    .format(lat, lon))
+    cf_file.write('# {0:>8} {1:>12}\n'.format('z (km)', 'CF (0-1)'))
+    
+    for i in range(len(z)):
+        wc_file.write('{0:>10.3f} {1:>17.5E} {2:>14.1f}\n'
+                  .format(z[i], wc[i], 10.0))
+        ic_file.write('{0:>10.3f} {1:>17.5E} {2:>14.1f}\n'
+                  .format(z[i], ic[i], 20.0))
+        cf_file.write('{0:>10.3f} {1:>12.4E}\n'.format(z[i], cf[i]))
+    wc_file.close()
+    ic_file.close()
+    cf_file.close()
+
+def atmosphere_profile(dataset, nlat, nlon, species=['H2O'], clouds=True):
     '''
     Creates atmosphere file for libradtran input.
     '''
     lat, lon = constants(dataset)[1][nlat], constants(dataset)[2][nlon]
-    z, P, T, air_rho, rQ = variables(dataset, nlat, nlon)
+    z, P, T, air_rho, rQ, wc, ic, cf = variables(dataset, nlat, nlon)
+    
     atmosphere_file = open("libradtran/atmosphere_file.dat", 'w')
     atmosphere_file.write('# Atmosheric profile for (lat, lon) = ({0}, {1})\n'
                           .format(lat, lon))    
@@ -92,16 +136,16 @@ def atmosphere_profile(dataset, nlat, nlon, species=['H2O']):
                               .format(z[i], P[i], T[i], air_rho[i]))
     atmosphere_file.close()
     
-    for spec in species: # !!! rh and rQ must be changed in the loop
-        spec_file = open("libradtran/{0}_file.dat".format(spec), 'w')
-        spec_file.write('# {2} profile for (lat, lon) = ({0}, {1})\n'
-                       .format(lat, lon, spec))
-        spec_file.write('# {0:>8} {1:>11}\n'.format('z (km)', spec+' (rh)'))
-        for i in range(len(z)):
-            spec_file.write('{0:>10.3f} {1:>11.5f}\n'.format(z[i], rQ[i]))
-        spec_file.close()
+    for spec in species: # Add more species !!!
+        if spec=='H2O': Q, u = rQ, ' (rh)'
+        spec_file(spec, lat, lon, z, Q, u)
+    
+    if clouds: # Fix eff radius !!!. Maybe separate ic and wc
+        cloud_file(cf, wc, ic, lat, lon, z)
+        
 
-def libra_input(dataset, nlat, nlon, species=['H2O'], error='verbose'):
+def libra_input(dataset, nlat, nlon, species=['H2O'], 
+                clouds=True, error='verbose'):
     '''
     Creates a libradtran input file along with the other necessary files 
     corresponding to the dataset and the (lat, lon) coordinates. 
@@ -110,22 +154,38 @@ def libra_input(dataset, nlat, nlon, species=['H2O'], error='verbose'):
     '''
     inp = open("libradtran/test.inp", 'w')
     
+    # why solar takes file argument? !!! Should I put my extraterrestrial calculations?
+    # what's the exact difference solar vs thermal?
     # How to determine wavelength? !!!
-    # Add clouds!!!
     inp.write('# Wavelength grid and source\n')
-    inp.write('wavelength 250 10000 # nm\n')
-    inp.write('source thermal\n')
+    inp.write('wavelength 2900 3000 # nm\n')
+    inp.write('spline 2901 2999 1# nm\n')
+    inp.write('source solar\n')
     inp.write('\n')
     
     # mol_modify and mol_file for all species densities !!!
+    # currently takes standard US profiles
     inp.write('# Atmospheric properties\n')
-    atmosphere_profile(dataset, nlat, nlon, species=species)
+    atmosphere_profile(dataset, nlat, nlon, species=species, clouds=clouds)
     inp.write('atmosphere_file atmosphere_file.dat\n')
-    inp.write('mol_file H2O H2O_file.dat rh\n')
-    inp.write('mol_modify CO2 8.45e21 CM_2\n')
     inp.write('albedo 0.1\n')
+    inp.write('## Species\n')
+    if 'H2O' in species:
+        inp.write('mol_file H2O H2O_file.dat rh\n')
+    inp.write('mol_modify CO2 8.45e21 CM_2\n')
+    if clouds:
+        inp.write('## Clouds\n')
+        inp.write('wc_file 1D wc_file.dat\n')
+        inp.write('wc_properties mie interpolate\n')
+        inp.write('ic_file 1D ic_file.dat\n')
+        inp.write('ic_properties yang interpolate\n')
+        inp.write('cloud_fraction_file cloudfrac_file.dat\n')
+        inp.write('cloud_overlap  maxrand\n')
     inp.write('\n')
     
+    # What's the sza I need to use?? !!! I am using monthly averages, so lat,lon dont help
+    # Average months year by year for all overlapping years?
+    # Run code 12x48x96 times for each month, lat and lon? (27,000 computational hours)
     inp.write('# Geometry\n')
     lat, lon = constants(dataset)[1][nlat], constants(dataset)[2][nlon]
     YYYY, MM, DD = constants(dataset)[-1]
@@ -157,44 +217,3 @@ libra_input(m1, 40, 67)
 
 
 
-'''
-Tsurf = (m1.variables['TSMN'][0]+m1.variables['TSMX'][0])/2 # K
-DeltaT = Tsurf - TS[None,:,:]
-lapse = -0.0065; R = 8.31432; g = 9.80665; M = 0.0289644; c = -R*lapse/g/M
-Deltah = (Tsurf/lapse)*((P/PS)**c-1)
-
-liq = "datasets/ccsm/b30.031.cam2.h0.CLDLIQ_zav.0200-01_cat_0299-12.nc"
-ice = "datasets/ccsm/b30.031.cam2.h0.CLDICE_zav.0200-01_cat_0299-12.nc"
-ps = "datasets/ccsm/b30.031.cam2.h0.PS.0200-01_cat_0299-12.nc"
-hgh = "datasets/ccsm/test/b30.031.cam2.h0.CLDHGH.0200-01_cat_0299-12.nc"
-low = "datasets/ccsm/test/b30.032a.cam2.h0.CLDLOW.0479-01_cat_0578-12.nc"
-frac = "datasets/ccsm/b30.031.cam2.h0.CLOUD_zav.0200-01_cat_0299-12.nc"
-hum = "datasets/ccsm/b30.031.cam2.h0.Q_zav.0200-01_cat_0299-12.nc"
-temp = "datasets/ccsm/b30.031.cam2.h0.T_zav.0200-01_cat_0299-12.nc"
-hum2 = "datasets/ccsm/test/b30.032a.cam2.h0.Q_zav.0479-01_cat_0578-12.nc"
-temp2 = "datasets/ccsm/test/b30.032a.cam2.h0.T_zav.0479-01_cat_0578-12.nc"
-tsoi = "datasets/ccsm/test/b30.040e.clm2.h0.TSOI.2000-01_cat_2099-12.nc"
-temp = "datasets/ccsm/test/1999/b30.030e.cam2.h3.SA_Q.1999-01-01_cat_1999-12-31.nc"
-temp2 = "datasets/ccsm/test/1999/b30.030e.cam2.h3.Q.1999-11-01_cat_1999-11-30.nc"
-
-liq = Dataset(liq)
-ice = Dataset(ice)
-frac = Dataset(frac)
-hgh = Dataset(hgh)
-low = Dataset(low)
-hum = Dataset(hum2)
-temp = Dataset(temp2)
-ps = Dataset(ps)
-tsoi = Dataset(tsoi)
-temp = Dataset(temp)
-temp2 = Dataset(temp2)
-
-#print ice.variables['P0'][:]
-#print ice.variables['lev'][:]
-#print ice.variables['CLDICE']
-#print ice.variables['hyai']
-#print ice.variables['hyam'][:]
-#print ice.variables['hybi']
-#print ice.variables['hybm'][:]
-#print ice.variables['ilev']
-'''

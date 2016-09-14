@@ -6,7 +6,7 @@ randomseed
 *.pyc
 *.py~
 
-# Initial directory
+# Directories
 initial_files/
 libradtran/
 

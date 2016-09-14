@@ -3,6 +3,7 @@ This module reads libradtran output and calculates material entropy.
 '''
 
 import numpy as np
+import collections
 import matplotlib.pylab as plt
 import scipy.interpolate as sci
 
@@ -16,14 +17,14 @@ sid=60*60*24.0  # sec (seconds in a day)
 pi = np.pi      # sr (solid angle assumed for isotropically diffused radiation)
 omega0=6.87e-5  # sr (solid angle subtended by the Sun)
 
-def load_output(filename, znum, radtype='sw', only_output=False):
+def load_output(filename, radtype='sw', only_output=False):
     '''
     Reads libradtran output file. The physical quantities are:
     
     - wvl (wavelength, nm)
     - z (altitude, km transformed to m)
     - T (temperature, K)
-    - rho_air (air density, !!!)
+    - rho_air (air density, kg m^-3)
     - output (3D array containing the variable quantities listed below)
         - edir (direct intensity)
         - edn (upwards diffuse intensity)
@@ -32,8 +33,9 @@ def load_output(filename, znum, radtype='sw', only_output=False):
         All intensities are read in units mW m^-2 nm^-1 which are transformed 
         into W m^-2 m. heat is transformed to K day^-1 m.
     '''
-    fdir = "libradtran/%s.out" % (filename)
+    fdir = "libradtran/{0}.out".format(filename)
     output = np.loadtxt(fdir, comments='#')
+    znum = np.count_nonzero(output[:,0]==output[:,0][0])
     
     wvl = output[:,0][::znum]
     z = output[:,1][:znum]*1000
@@ -85,7 +87,7 @@ def heat_check(z, edir, edn, eup):
     check = (interpol(z, edir)+interpol(z, edn)+interpol(z, eup))*const
     return check
 
-wvl, z, T, rho_air, edir, edn, eup, heat = load_output('032a', 50)
+wvl, z, T, rho_air, edir, edn, eup, heat = load_output('testt')
 inter = interpol(z, edir)
 plt.plot(z, edir[0, :], z, inter[0, :])
 plt.show()
