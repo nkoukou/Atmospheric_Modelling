@@ -22,7 +22,7 @@ def load_output(filename, radtype='sw', only_output=False):
     Reads libradtran output file. The physical quantities are:
     
     - wvl (wavelength, nm)
-    - z (altitude, km transformed to m)
+    - z (altitude, km converts to m)
     - T (temperature, K)
     - rho_air (air density, kg m^-3)
     - output (3D array containing the variable quantities listed below)
@@ -30,8 +30,8 @@ def load_output(filename, radtype='sw', only_output=False):
         - edn (upwards diffuse intensity)
         - eup (downwards diffuse intensity)
         - heat (heating rate, K day^-1 nm^-1)
-        All intensities are read in units mW m^-2 nm^-1 which are transformed 
-        into W m^-2 m. heat is transformed to K day^-1 m.
+        All intensities are read in units mW m^-2 nm^-1 which convert into 
+        W m^-2 m. heat is transformed to K day^-1 m.
     '''
     fdir = "libradtran/{0}.out".format(filename)
     output = np.loadtxt(fdir, comments='#')

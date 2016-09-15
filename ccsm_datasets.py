@@ -14,9 +14,7 @@ air0 = 1.2754e-3 # g cm^-3 (air density at T0 and P0=100kPa)
 
 # Import netCDF files
 m1 = "datasets/ccsm/b30.031.cam2.h0.0359-01.nc"
-m2 = "datasets/ccsm/b30.031.cam2.h0.0359-02.nc"
 m1 = Dataset(m1)
-m2 = Dataset(m2)
 
 # Testing data
 def show_vars(filename):
@@ -24,8 +22,8 @@ def show_vars(filename):
         print var, filename.variables[var].shape
 
 #show_vars(m1)
-m=m1.variables['Q'][0]-m1.variables['CLDLIQ'][0]
-print m.max()
+#m=m1.variables['Q'][0]-m1.variables['CLDLIQ'][0]
+#print m.max()
 #print m1.variables['CLDTOT']
 # print m1.variables['CLOUD'][0][:,40,67]
 #print '---------'
@@ -144,23 +142,26 @@ def atmosphere_profile(dataset, nlat, nlon, species=['H2O'], clouds=True):
         cloud_file(cf, wc, ic, lat, lon, z)
         
 
-def libra_input(dataset, nlat, nlon, species=['H2O'], 
-                clouds=True, error='verbose'):
+def libra_input(dataset, nlat, nlon, wvl=[2900, 3000], source='solar', 
+                param='lowtran', species=['H2O'], clouds=True, 
+                error='verbose'):
     '''
     Creates a libradtran input file along with the other necessary files 
     corresponding to the dataset and the (lat, lon) coordinates. 
     Parameter error corresponds to the error handling during the execution of 
     the libradtran code.
+    
+    source: solar => edir == 0 throughout SW, thermal => edir != 0 throughout LW
     '''
     inp = open("libradtran/test.inp", 'w')
     
-    # why solar takes file argument? !!! Should I put my extraterrestrial calculations?
+    # why solar takes file argument? !!! I dont have wvl grid
     # what's the exact difference solar vs thermal?
     # How to determine wavelength? !!!
     inp.write('# Wavelength grid and source\n')
-    inp.write('wavelength 2900 3000 # nm\n')
-    inp.write('spline 2901 2999 1# nm\n')
-    inp.write('source solar\n')
+    inp.write('wavelength {0} {1} # nm\n'.format(wvl[0], wvl[1]))
+    inp.write('spline {0} {1} 1# nm\n'.format(wvl[0]+1, wvl[1]-1))
+    inp.write('source {0}\n'.format(source))
     inp.write('\n')
     
     # mol_modify and mol_file for all species densities !!!
@@ -180,10 +181,11 @@ def libra_input(dataset, nlat, nlon, species=['H2O'],
         inp.write('ic_file 1D ic_file.dat\n')
         inp.write('ic_properties yang interpolate\n')
         inp.write('cloud_fraction_file cloudfrac_file.dat\n')
-        inp.write('cloud_overlap  maxrand\n')
+        inp.write('cloud_overlap maxrand\n')
     inp.write('\n')
     
-    # What's the sza I need to use?? !!! I am using monthly averages, so lat,lon dont help
+    # What's the sza I need to use?? How did you calculate sza in paper?!!!
+    # I am using monthly averages, so lat,lon dont help
     # Average months year by year for all overlapping years?
     # Run code 12x48x96 times for each month, lat and lon? (27,000 computational hours)
     inp.write('# Geometry\n')
@@ -197,7 +199,7 @@ def libra_input(dataset, nlat, nlon, species=['H2O'],
     inp.write('# Radiative transfer equation\n')
     inp.write('rte_solver disort\n')
     inp.write('number_of_streams 6\n')
-    inp.write('mol_abs_param reptran fine\n')
+    inp.write('mol_abs_param {0}\n'.format(param))
     inp.write('\n')
     
     inp.write('# Output\n')
@@ -209,7 +211,9 @@ def libra_input(dataset, nlat, nlon, species=['H2O'],
     inp.write('{0}\n'.format(error))
     inp.close()
 
-libra_input(m1, 40, 67)
+libra_input(m1, 40, 67, wvl=[2900, 3000], source='solar', 
+            param='lowtran', species=['H2O'], clouds=True, 
+            error='verbose')
 
 
 
