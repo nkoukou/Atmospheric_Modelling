@@ -158,12 +158,15 @@ def libra_input(dataset, nlat, nlon, wvl=[2900, 3000], source='solar',
     '''
     inp = open("libradtran/test.inp", 'w')
     
-    # why solar takes file argument? !!! I dont have wvl grid
-    # what's the exact difference solar vs thermal?
+    # !!! why spline does not work for thermal? how to make grid of 1nm?
     inp.write('# Wavelength grid and source\n')
-    inp.write('wavelength {0} {1} # nm\n'.format(wvl[0]-1, wvl[1]+1))
-    inp.write('spline {0} {1} 1# nm\n'.format(wvl[0], wvl[1]))
-    inp.write('source {0}\n'.format(source))
+    if source=='solar':
+        inp.write('wavelength {0} {1} # nm\n'.format(wvl[0], wvl[1]))
+        inp.write('source solar ../data/solar_flux/kurudz_1.0nm.dat per_nm\n')
+    elif source=='thermal':
+        inp.write('wavelength {0} {1} # nm\n'.format(wvl[0], wvl[1]))
+        inp.write('source thermal\n')
+        #inp.write('spline {0} {1} 1# nm\n'.format(wvl[0], wvl[1]))
     inp.write('\n')
     
     # currently takes standard US profiles of all species except for H2O & CO2
@@ -207,9 +210,9 @@ def libra_input(dataset, nlat, nlon, wvl=[2900, 3000], source='solar',
     
     inp.write('{0}\n'.format(error))
     inp.close()
-# solar ../data/solar_flux/kurudz_1.0nm.dat per_nm
+
 libra_input(m1, 40, 67, wvl=[3000, 10000], source='thermal', 
-            param='reptran', species=['H2O'], clouds=True, 
+            param='lowtran', species=['H2O'], clouds=True, 
             error='verbose')
 
 

@@ -136,7 +136,8 @@ def flux_month(month, re='r', lc=False):
 def months_in_year(year):
     '''
     Returns list of all months in given year, in the form yymm 
-    (eg. January 2000 is returned as '0001').
+    (eg. January 2000 is returned as '0001'. Note: January 0500 is also 
+    returned as '0001').
     '''
     yr = str(year)[-2:]
     months = []
