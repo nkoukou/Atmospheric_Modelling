@@ -13,8 +13,10 @@ T0 = 273.15      # K
 air0 = 1.2754e-3 # g cm^-3 (air density at T0 and P0=100kPa)
 
 # Import netCDF files
-m1 = "datasets/ccsm/b30.031.cam2.h0.0359-01.nc"
+m1 = "datasets/ccsm/control/b30.031.cam2.h0.0500-01.nc"
+m2 = "datasets/ccsm/b30.031.cam2.h0.0359-01.nc"
 m1 = Dataset(m1)
+m2 = Dataset(m2)
 
 # Testing data
 def show_vars(filename):
@@ -22,9 +24,9 @@ def show_vars(filename):
         print var, filename.variables[var].shape
 
 #show_vars(m1)
-#m=m1.variables['Q'][0]-m1.variables['CLDLIQ'][0]
+#m=m2.variables['CLDICE'][0]-m1.variables['CLDICE'][0]
 #print m.max()
-#print m1.variables['CLDTOT']
+#print m1.variables['T'][:]
 # print m1.variables['CLOUD'][0][:,40,67]
 #print '---------'
 #print m1.variables['time']
@@ -50,7 +52,8 @@ def constants(dataset):
         elif ln<0: lon.append('W '+str(-ln))
     lev = dataset.variables['lev'][:]       # level
     P0 = dataset.variables['P0'][:]         # Pa
-    date = str(dataset.variables['date'][0]+16000000) # !!! add 1600 years to fit year between 1900-2000
+    # !!!(test time evolution) add 1410 years to fit year between 1900-2000
+    date = str(dataset.variables['date'][0]+14100000)
     time = date[:-4].zfill(4), date[-4:-2], date[-2:]
     return P0, lat, lon, lev, time
 
@@ -157,15 +160,13 @@ def libra_input(dataset, nlat, nlon, wvl=[2900, 3000], source='solar',
     
     # why solar takes file argument? !!! I dont have wvl grid
     # what's the exact difference solar vs thermal?
-    # How to determine wavelength? !!!
     inp.write('# Wavelength grid and source\n')
-    inp.write('wavelength {0} {1} # nm\n'.format(wvl[0], wvl[1]))
-    inp.write('spline {0} {1} 1# nm\n'.format(wvl[0]+1, wvl[1]-1))
+    inp.write('wavelength {0} {1} # nm\n'.format(wvl[0]-1, wvl[1]+1))
+    inp.write('spline {0} {1} 1# nm\n'.format(wvl[0], wvl[1]))
     inp.write('source {0}\n'.format(source))
     inp.write('\n')
     
-    # mol_modify and mol_file for all species densities !!!
-    # currently takes standard US profiles
+    # currently takes standard US profiles of all species except for H2O & CO2
     inp.write('# Atmospheric properties\n')
     atmosphere_profile(dataset, nlat, nlon, species=species, clouds=clouds)
     inp.write('atmosphere_file atmosphere_file.dat\n')
@@ -184,10 +185,6 @@ def libra_input(dataset, nlat, nlon, wvl=[2900, 3000], source='solar',
         inp.write('cloud_overlap maxrand\n')
     inp.write('\n')
     
-    # What's the sza I need to use?? How did you calculate sza in paper?!!!
-    # I am using monthly averages, so lat,lon dont help
-    # Average months year by year for all overlapping years?
-    # Run code 12x48x96 times for each month, lat and lon? (27,000 computational hours)
     inp.write('# Geometry\n')
     lat, lon = constants(dataset)[1][nlat], constants(dataset)[2][nlon]
     YYYY, MM, DD = constants(dataset)[-1]
@@ -210,9 +207,9 @@ def libra_input(dataset, nlat, nlon, wvl=[2900, 3000], source='solar',
     
     inp.write('{0}\n'.format(error))
     inp.close()
-
-libra_input(m1, 40, 67, wvl=[2900, 3000], source='solar', 
-            param='lowtran', species=['H2O'], clouds=True, 
+# solar ../data/solar_flux/kurudz_1.0nm.dat per_nm
+libra_input(m1, 40, 67, wvl=[3000, 10000], source='thermal', 
+            param='reptran', species=['H2O'], clouds=True, 
             error='verbose')
 
 

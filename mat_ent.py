@@ -87,10 +87,10 @@ def heat_check(z, edir, edn, eup):
     check = (interpol(z, edir)+interpol(z, edn)+interpol(z, eup))*const
     return check
 
-wvl, z, T, rho_air, edir, edn, eup, heat = load_output('testt')
-inter = interpol(z, edir)
-plt.plot(z, edir[0, :], z, inter[0, :])
-plt.show()
+#wvl, z, T, rho_air, edir, edn, eup, heat = load_output('testSO')
+#inter = interpol(z, edir)
+#plt.plot(z, edir[0, :], z, inter[0, :])
+#plt.show()
 
 
 

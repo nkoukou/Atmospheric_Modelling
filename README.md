@@ -6,7 +6,7 @@ papers / GIT (priority) / bash scripting
 -------------------------------------
 ToDo:
 
-1. Request one overlapping years
+-1. Request one overlapping years
 2. Check out lowtran vs reptran vs source file inputs
 3. Keep notes and comments of all assumptions and calculations
 4. Calculate sza theoretically
