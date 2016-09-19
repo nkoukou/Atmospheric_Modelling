@@ -96,6 +96,7 @@ def rad_flux(rad,radtype='sw',lc=True):
     flux = rad[0]*(wvl[0]-wvl[1])+rad[n]*(wvl[n-1]-wvl[n])
     for i in range(1,n-1):
         flux += 0.5*rad[i]*(wvl[i-1]-wvl[i+1])
+    # lres sw rad has wavelength in reverse order
     if radtype=='sw' and lc: flux = -flux
     return flux
 
@@ -116,6 +117,7 @@ def ent_flux(rad,radtype='sw',lc=True):
     flux = ent[0]*(wvl[0]-wvl[1])+ent[n]*(wvl[n-1]-wvl[n])
     for i in range(1,n-1):
         flux += 0.5*ent[i]*(wvl[i-1]-wvl[i+1])
+    # lres sw rad has wavelength in reverse order
     if radtype=='sw' and lc: flux = -flux
     return flux
 

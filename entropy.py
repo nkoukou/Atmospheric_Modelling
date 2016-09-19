@@ -2,8 +2,8 @@
 This module transfers 'entropy.pro' into python code. It analyses global mean 
 data provided by OSSE.
 
-I - radiation intensity; F - I integrated over wavelength
-L - entropy intensity; J - L integrated over wavelength
+I - radiation intensity; F = I integrated over wavelength
+L - entropy intensity; J = L integrated over wavelength
 '''
 
 import numpy as np
@@ -334,7 +334,7 @@ def plot_type_diff(month, year):
 #plot_month(11,'e')
 #plot_year_diff(12, 'LW')
 #plot_type_diff(9,2099)
-plt.show()
+#plt.show()
 
 
 

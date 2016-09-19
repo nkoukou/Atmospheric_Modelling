@@ -13,10 +13,19 @@ T0 = 273.15      # K
 air0 = 1.2754e-3 # g cm^-3 (air density at T0 and P0=100kPa)
 
 # Import netCDF files
-m1 = "datasets/ccsm/control/b30.031.cam2.h0.0500-01.nc"
-m2 = "datasets/ccsm/b30.031.cam2.h0.0359-01.nc"
-m1 = Dataset(m1)
-m2 = Dataset(m2)
+def loadnetcdf(year, month, control=True):
+    '''
+    Loads netCDF histroy dataset for given year and month.
+    '''
+    if control:
+        fdir = "datasets/ccsm/control/b30.031.cam2.h0.{0}-{1}.nc"\
+               .format(str(year).zfill(4), str(month).zfill(2))
+    else:
+        fdir = "datasets/ccsm/double/b30.032a.cam2.h0.{0}-{1}.nc"\
+               .format(str(year).zfill(4), str(month).zfill(2))
+    return Dataset(fdir)
+
+m = loadnetcdf(500,1)
 
 # Testing data
 def show_vars(filename):
@@ -27,7 +36,7 @@ def show_vars(filename):
 #m=m2.variables['CLDICE'][0]-m1.variables['CLDICE'][0]
 #print m.max()
 #print m1.variables['T'][:]
-# print m1.variables['CLOUD'][0][:,40,67]
+#print m1.variables['CLOUD'][0][:,40,67]
 #print '---------'
 #print m1.variables['time']
 #for i in range(14,21):
@@ -41,6 +50,9 @@ def constants(dataset):
     '''
     Returns arrays of latitude, longitude, level and constant P0, which are 
     common throughout datasets.
+    
+    lat and lon are converted into lists (each element is of the form N 80 for 
+    latitude of 80 degrees North).
     '''
     latt, lonn = dataset.variables['lat'][:], dataset.variables['lon'][:]-180.0
     lat, lon = [], []                       # deg, deg
@@ -59,8 +71,25 @@ def constants(dataset):
 
 def variables(dataset, nlat, nlon):
     '''
-    Returns standard variables (altitude, pressure, temperature, air density) 
-    from given dataset. 
+    Returns standard variables (altitude, pressure, temperature, air density, 
+    relative humidity, cloud properties) from given dataset.
+    
+    Altitude is taken as the geopotential height.
+    
+    Pressure P is calculated by the atmospheric hybrid sigma coefficients A and 
+    B along with the standard and surface pressures P0 and PS respectively with 
+    the formula P = A*P0 + B*PS.
+    
+    Temperature is the radiative temperature.
+    
+    The number density of air is calculated as P/(kb*T) to preserve 
+    hydrodynamic equilibrium.
+    
+    Cloud liquid and ice condensates are imported in units of fraction =
+    = (kg of vapour water)/(kg of dry air). Using the reference air mass 
+    density air0 and that P is proportional to rho*T, the mass density of air 
+    rho is calculated at all grid points and the units are converted to vapour 
+    mass density = fraction*rho. 
     '''
     P0 = constants(dataset)[0]                                  # Pa
     PS = dataset.variables['PS'][0]                             # Pa
@@ -80,7 +109,11 @@ def variables(dataset, nlat, nlon):
 
 def spec_file(spec, lat, lon, z, Q, u):
     '''
-    Creates mol_files for libradtran input.
+    Creates mol_files for libradtran input. They indicate species densities in 
+    the atmosphere.
+    
+    Currently CO2 and H2O are specified by the model and other species are 
+    specified from standard US profile datasets.
     '''
     spec_file = open("libradtran/{0}_file.dat".format(spec), 'w')
     spec_file.write('# {2} profile for (lat, lon) = ({0}, {1})\n'
@@ -93,28 +126,31 @@ def spec_file(spec, lat, lon, z, Q, u):
 def cloud_file(cf, wc, ic, lat, lon, z):
     '''
     Creates cloud files for libradtran input.
+    
+    Water and ice cloud droplets have an effective radius of 10 and 20 microns 
+    respectively.
     '''
     wc_file = open("libradtran/wc_file.dat", 'w')
     ic_file = open("libradtran/ic_file.dat", 'w')
     cf_file = open("libradtran/cloudfrac_file.dat", 'w')
     
     wc_file.write('# Water cloud profile for (lat, lon) = ({0}, {1})\n'
-                    .format(lat, lon))
+                  .format(lat, lon))
     wc_file.write('# {0:>8} {1:>17} {2:>14}\n'
                   .format('z (km)', 'LWC (g cm^-3)', 'R_eff (um)'))
     ic_file.write('# Ice cloud profile for (lat, lon) = ({0}, {1})\n'
-                    .format(lat, lon))
+                  .format(lat, lon))
     ic_file.write('# {0:>8} {1:>17} {2:>14}\n'
                   .format('z (km)', 'LWC (g cm^-3)', 'R_eff (um)'))
     cf_file.write('# Cloud fraction profile for (lat, lon) = ({0}, {1})\n'
-                    .format(lat, lon))
+                  .format(lat, lon))
     cf_file.write('# {0:>8} {1:>12}\n'.format('z (km)', 'CF (0-1)'))
     
     for i in range(len(z)):
         wc_file.write('{0:>10.3f} {1:>17.5E} {2:>14.1f}\n'
-                  .format(z[i], wc[i], 10.0))
+                      .format(z[i], wc[i], 10.0))
         ic_file.write('{0:>10.3f} {1:>17.5E} {2:>14.1f}\n'
-                  .format(z[i], ic[i], 20.0))
+                      .format(z[i], ic[i], 20.0))
         cf_file.write('{0:>10.3f} {1:>12.4E}\n'.format(z[i], cf[i]))
     wc_file.close()
     ic_file.close()
@@ -137,24 +173,23 @@ def atmosphere_profile(dataset, nlat, nlon, species=['H2O'], clouds=True):
                               .format(z[i], P[i], T[i], air_rho[i]))
     atmosphere_file.close()
     
-    for spec in species: # Add more species !!!
+    for spec in species:
         if spec=='H2O': Q, u = rQ, ' (rh)'
         spec_file(spec, lat, lon, z, Q, u)
     
-    if clouds: # Fix eff radius !!!. Maybe separate ic and wc
+    if clouds:
         cloud_file(cf, wc, ic, lat, lon, z)
         
 
-def libra_input(dataset, nlat, nlon, wvl=[2900, 3000], source='solar', 
-                param='lowtran', species=['H2O'], clouds=True, 
-                error='verbose'):
+def libra_input(dataset, nlat, nlon, wvl=[250, 5000], source='solar', 
+                species=['H2O'], clouds=True, error='verbose'):
     '''
     Creates a libradtran input file along with the other necessary files 
     corresponding to the dataset and the (lat, lon) coordinates. 
     Parameter error corresponds to the error handling during the execution of 
     the libradtran code.
     
-    source: solar => edir == 0 throughout SW, thermal => edir != 0 throughout LW
+    source: solar => edir == 0 for SW, thermal => edir != 0 for LW
     '''
     inp = open("libradtran/test.inp", 'w')
     
@@ -163,10 +198,12 @@ def libra_input(dataset, nlat, nlon, wvl=[2900, 3000], source='solar',
     if source=='solar':
         inp.write('wavelength {0} {1} # nm\n'.format(wvl[0], wvl[1]))
         inp.write('source solar ../data/solar_flux/kurudz_1.0nm.dat per_nm\n')
+        param='reptran'
     elif source=='thermal':
-        inp.write('wavelength {0} {1} # nm\n'.format(wvl[0], wvl[1]))
+        inp.write('wavelength {0} {1} # nm\n'.format(wvl[0]-1, wvl[1]+1))
         inp.write('source thermal\n')
         #inp.write('spline {0} {1} 1# nm\n'.format(wvl[0], wvl[1]))
+        param='lowtran'
     inp.write('\n')
     
     # currently takes standard US profiles of all species except for H2O & CO2
@@ -211,7 +248,7 @@ def libra_input(dataset, nlat, nlon, wvl=[2900, 3000], source='solar',
     inp.write('{0}\n'.format(error))
     inp.close()
 
-libra_input(m1, 40, 67, wvl=[3000, 10000], source='thermal', 
+libra_input(m, 30, 60, wvl=[2000, 15000], source='thermal', 
             param='lowtran', species=['H2O'], clouds=True, 
             error='verbose')
 
