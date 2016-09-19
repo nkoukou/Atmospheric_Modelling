@@ -112,7 +112,7 @@ def spec_file(spec, lat, lon, z, Q, u):
     Creates mol_files for libradtran input. They indicate species densities in 
     the atmosphere.
     
-    Currently CO2 and H2O are specified by the model and other species are 
+    Currently CO2 and H2O are specified by the model and other gas species are 
     specified from standard US profile datasets.
     '''
     spec_file = open("libradtran/{0}_file.dat".format(spec), 'w')
@@ -190,10 +190,11 @@ def libra_input(dataset, nlat, nlon, wvl=[250, 5000], source='solar',
     the libradtran code.
     
     source: solar => edir == 0 for SW, thermal => edir != 0 for LW
+    
+    !!! try kato
     '''
     inp = open("libradtran/test.inp", 'w')
     
-    # !!! why spline does not work for thermal? how to make grid of 1nm?
     inp.write('# Wavelength grid and source\n')
     if source=='solar':
         inp.write('wavelength {0} {1} # nm\n'.format(wvl[0], wvl[1]))
@@ -202,11 +203,10 @@ def libra_input(dataset, nlat, nlon, wvl=[250, 5000], source='solar',
     elif source=='thermal':
         inp.write('wavelength {0} {1} # nm\n'.format(wvl[0]-1, wvl[1]+1))
         inp.write('source thermal\n')
-        #inp.write('spline {0} {1} 1# nm\n'.format(wvl[0], wvl[1]))
+        inp.write('spline {0} {1} 1# nm\n'.format(wvl[0], wvl[1]))
         param='lowtran'
     inp.write('\n')
     
-    # currently takes standard US profiles of all species except for H2O & CO2
     inp.write('# Atmospheric properties\n')
     atmosphere_profile(dataset, nlat, nlon, species=species, clouds=clouds)
     inp.write('atmosphere_file atmosphere_file.dat\n')
@@ -248,9 +248,8 @@ def libra_input(dataset, nlat, nlon, wvl=[250, 5000], source='solar',
     inp.write('{0}\n'.format(error))
     inp.close()
 
-libra_input(m, 30, 60, wvl=[2000, 15000], source='thermal', 
-            param='lowtran', species=['H2O'], clouds=True, 
-            error='verbose')
+libra_input(m, 30, 60, wvl=[250, 255], source='solar', 
+            species=['H2O'], clouds=True, error='verbose')
 
 
 

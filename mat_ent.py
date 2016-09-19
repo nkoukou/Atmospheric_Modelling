@@ -30,7 +30,7 @@ def load_output(filename, radtype='sw', only_output=False):
         - edn (upwards diffuse intensity)
         - eup (downwards diffuse intensity)
         - heat (heating rate, K day^-1 nm^-1)
-        All intensities are read in units mW m^-2 nm^-1 which convert into 
+        All intensities are read in units mW m^-2 nm^-1 and converted into 
         W m^-2 m. heat is transformed to K day^-1 m.
     '''
     fdir = "libradtran/{0}.out".format(filename)
@@ -69,9 +69,10 @@ def ent_flux(wvl, rad, radtype='sw', angle='dir'):
     np.seterr(all='warn')
     return ent
 
-def interpol(z, rad):
+def deriv(z, rad):
     '''
-    Performs Lagrange interpolation on 1D z array and 2D radiation array
+    Evaluates derivative of radiation with respect to altitude using B-splines
+    (1D z array and 2D radiation array).
     '''
     inter=np.zeros(rad.shape)
     for i in range(len(rad)):
@@ -84,14 +85,28 @@ def heat_check(z, edir, edn, eup):
     Estimates the libradtran heat input in units K day^-1 m for comparison.
     '''
     const = sid/cp/rho_air[None,:]
-    check = (interpol(z, edir)+interpol(z, edn)+interpol(z, eup))*const
+    check = (deriv(z, edir)+deriv(z, edn)+deriv(z, eup))*const
     return check
 
-#wvl, z, T, rho_air, edir, edn, eup, heat = load_output('testSO')
-#inter = interpol(z, edir)
-#plt.plot(z, edir[0, :], z, inter[0, :])
-#plt.show()
+def sdot(filename, radtype='sw', only_output=False):
+    '''
+    Returns material, radiation and total entropy rates and a heat check.
+    Entropy rates are in units W m^-3 K^-1 m.
+    '''
+    wvl, z, T, rho_air, edir, edn, eup, heat = load_output(filename, 
+      radtype=radtype, only_output=only_output)
+    ent_dir = ent_flux(wvl, edir, radtype=radtype, angle='dir')
+    ent_dn = ent_flux(wvl, edn, radtype=radtype, angle='diff')
+    ent_up = ent_flux(wvl, eup, radtype=radtype, angle='diff')
+    
+    sdotmat = cp/sid * rho_air[None,:]/T[None,:] * heat
+    sdotrad = deriv(z, ent_up) - deriv(z, ent_dn) - deriv(z, ent_dir)
+    sdot = sdotmat + sdotrad
+    check = heat_check(z, edir, edn, eup)
+    return sdotmat, sdotrad, sdot, check
 
+wvl, z, T, rho_air, edir, edn, eup, heat = load_output('0solar_rep')
+print heat_check(z, edir, edn, eup)
 
 
 

@@ -32,6 +32,8 @@ Notes (listed by module):
 2. A factor of 2000 corrects SW (non lres) radiation data.
    Entropy conversion is more accurate with Taylor approximation 
    for low radiation.
+   Errors messages have been supressed for entropy calculations because the 
+   numpy.where conditionals handle them successfully.
    Calculated values preserve the accuracy of the physical constants quoted.
    Numerical integration can become more efficient by use of numpy.trapz
 
