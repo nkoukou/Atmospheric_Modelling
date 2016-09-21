@@ -185,11 +185,17 @@ def libra_input(dataset, nlat, nlon, wvl=[250, 5000], source='solar',
                 species=['H2O'], clouds=True, error='verbose'):
     '''
     Creates a libradtran input file along with the other necessary files 
-    corresponding to the dataset and the (lat, lon) coordinates. 
+    corresponding to the dataset and the (lat, lon) coordinates.
+    
+    reptran and lowtran are used for solar (SW radiation => edir != 0) and 
+    thermal (LW radiation => edir==0) calculations respectively.
+    
+    species refer to the gas species that are present in the atmosphere. CO2 is 
+    set to a specific value throughout the atmosphere (8.45e21 cm^2). Data for 
+    other species not included in the list are taken from US standard tables.
+    
     Parameter error corresponds to the error handling during the execution of 
     the libradtran code.
-    
-    source: solar => edir == 0 for SW, thermal => edir != 0 for LW
     
     !!! try kato
     '''
@@ -201,9 +207,9 @@ def libra_input(dataset, nlat, nlon, wvl=[250, 5000], source='solar',
         inp.write('source solar ../data/solar_flux/kurudz_1.0nm.dat per_nm\n')
         param='reptran'
     elif source=='thermal':
-        inp.write('wavelength {0} {1} # nm\n'.format(wvl[0]-1, wvl[1]+1))
+        inp.write('wavelength {0} {1} # nm\n'.format(wvl[0], wvl[1]))
         inp.write('source thermal\n')
-        inp.write('spline {0} {1} 1# nm\n'.format(wvl[0], wvl[1]))
+        #inp.write('spline {0} {1} 1 # nm\n'.format(wvl[0], wvl[1]))
         param='lowtran'
     inp.write('\n')
     
@@ -214,7 +220,8 @@ def libra_input(dataset, nlat, nlon, wvl=[250, 5000], source='solar',
     inp.write('## Species\n')
     if 'H2O' in species:
         inp.write('mol_file H2O H2O_file.dat rh\n')
-    inp.write('mol_modify CO2 8.45e21 CM_2\n')
+    CO2_value = 8.45e21 # cm^2
+    inp.write('mol_modify CO2 {0} CM_2\n'.format(CO2_value))
     if clouds:
         inp.write('## Clouds\n')
         inp.write('wc_file 1D wc_file.dat\n')
@@ -225,6 +232,7 @@ def libra_input(dataset, nlat, nlon, wvl=[250, 5000], source='solar',
         inp.write('cloud_overlap maxrand\n')
     inp.write('\n')
     
+    # !!! Find sza and fix all lat, lon, time instances in the code
     inp.write('# Geometry\n')
     lat, lon = constants(dataset)[1][nlat], constants(dataset)[2][nlon]
     YYYY, MM, DD = constants(dataset)[-1]
@@ -248,7 +256,7 @@ def libra_input(dataset, nlat, nlon, wvl=[250, 5000], source='solar',
     inp.write('{0}\n'.format(error))
     inp.close()
 
-libra_input(m, 30, 60, wvl=[250, 255], source='solar', 
+libra_input(m, 30, 60, wvl=[2000, 2500], source='thermal', 
             species=['H2O'], clouds=True, error='verbose')
 
 

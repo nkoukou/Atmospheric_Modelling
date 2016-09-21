@@ -10,10 +10,9 @@ ToDo:
 -2. Lowtran works with thermal, try for solar (vs reptran)
 -3. Keep notes and comments of all assumptions and calculations
 4. Calculate sza theoretically
-5. mat_ent.py (deriv function, calculations, plots, output files)
-6. Request many overlapping years (be careful with size)
-   Check time evolution
-   Make the necessary 3D fields (make netcdf file out of netcdf avging)
+5. mat_ent.py (check libradtran output units and code units, calculations, plots, output files)
+6. Check time evolution between years 500 and 550
+   Choose year for 3D grids (make netcdf file out of netcdf avging)
 7. exported graphs (colorbar consistency, framing)
 -------------------------------------
 Modules:
