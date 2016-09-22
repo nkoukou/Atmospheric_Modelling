@@ -5,6 +5,7 @@ This module reads libradtran output and calculates material entropy.
 import numpy as np
 import collections
 import matplotlib.pylab as plt
+import matplotlib.ticker as mtk
 import scipy.interpolate as sci
 from glob_ent import find_nans
 
@@ -103,7 +104,7 @@ def heat_check(z, rho_air, edir, edn, eup):
     check = (deriv(z, edir)+deriv(z, edn)+deriv(z, eup))*const
     return check
 
-def sdot(quants, radtype='sw', debug=False):
+def sdot_calc(quants, radtype='sw', debug=False):
     '''
     Returns material, radiation and total entropy rates and a heat check.
     Entropy rates are in units W m^-3 K^-1 m.
@@ -121,7 +122,7 @@ def sdot(quants, radtype='sw', debug=False):
     sdot = sdotmat + sdotrad
     check = heat_check(z, rho_air, edir, edn, eup)
     
-    if debug:
+    if debug: # !!!
         print ent_dn.size,'\n'
         print 'ent_dir', len(ent_dir[ent_dir==0])#, ' / ', len(edir[edir<=0])
         print '--------------------'
@@ -134,9 +135,60 @@ def sdot(quants, radtype='sw', debug=False):
     
     return sdotmat, sdotrad, sdot, check
 
-# Export output
+# Plots - to be used only via the flux_output function
+def _plot_vertical(z, quant, tu):
+    '''
+    Plots a spectrally integrated quantity over all altitudes.
+    
+    Parameter tu is a tuple of titles and units to associate with the quants. 
+    It is provided when the function runs from within flux_output().
+    '''
+    ts, us = tu
+    fig = plt.figure()
+    plt.plot(z/1000, ts[quant])
+    ax.set_title('{0}'.format(quant))
+    plt.xlabel('$z\ (km)$')
+    plt.ylabel('${0}\ {1}$'.format(quant, us[quant]))
 
-def flux_output(filename, radtype='sw'):
+def _plot_levels(wvn, z, quants, tu, levels=[25]):
+    '''
+    Plots given quantities (e.g. [edir, eup, edn]) at given altitude levels 
+    (0-25) over all wavenumbers. Every plot displays all quants at a specific 
+    level. If only one quant is provided it is plotted on one plot for all 
+    levels.
+    
+    Parameter tu is a tuple of titles and units to associate with the quants. 
+    It is provided when the function runs from within flux_output().
+    '''
+    if quants==[]: return
+    ts, us = tu
+    
+    if len(quants)==1:
+        ax = fig.add_subplot(1,1,1)
+        for lev in levels:
+            ax.plot(wvn, ts[quants[0]][:,lev], label='{0:.3f} km'
+                    .format(z[lev]/1000))
+        ax.set_xlabel('$Wavenumber (m^{-1})$')
+        ax.set_ylabel('${0}\ {1}$'.format(quants[0], us[quants[0]]))
+        ax.yaxis.set_major_formatter(mtk.FormatStrFormatter('%.2f'))
+        ax.legend(loc='upper right')
+    else:
+        fig = plt.figure()
+        #fig.suptitle('')
+        for lev in levels:
+            ax = fig.add_subplot(len(levels),1, levels.index(lev)+1)
+            for j in range(len(quants)):
+                ax.plot(wvn, ts[quants[j]][:,lev], label='{0}'
+                        .format(quants[j]))
+            ax.set_title('Altitude {0:.3f} km'.format(z[lev]/1000))
+            ax.set_xlabel('$Wavenumber\ (m^{-1})$')
+            ax.set_ylabel('${0}$'.format(us[quants[0]]))
+            ax.yaxis.set_major_formatter(mtk.FormatStrFormatter('%.2f'))
+            ax.legend(loc='upper right')
+            plt.tight_layout()
+
+# Export output
+def flux_output(filename, radtype='sw', z_plots=[], lev_plots=[], levels=[0,25]):
     '''
     Exports flux output into a .txt file.
 
@@ -144,38 +196,118 @@ def flux_output(filename, radtype='sw'):
     J - entropy flux integrated over wavelength
     Q - heat
     sdot - entropy rate
+    
+    Parameters z_plots and lev_plots indicate what plots to be made against 
+    altitude and wavelength respectively. The titles of spectrally integrated 
+    quantities should be in the z_plots list (e.g. 'Q' or 'sdot'), while the 
+    titles of either entropy or radiation irradiances (e.g. 'edir', 'eup' and 
+    'edn' for radiation) should be in lev_plots list. 
+    
+    ts, us and us_ltx are dictionaries mapping titles to corresponding 
+    quantities, units and units in latex format respectively.
+    
+    !!! atm reaches 38km
     '''
+    # Load quantities
     quants = load_output(filename, radtype=radtype, only_output=False)
     wvn, z, T, rho_air, edir, edn, eup, heat = quants
-    sdots = sdot(quants, radtype=radtype, debug=False)
-    F_dir = spect_int(wvn, edir)
-    F_up = spect_int(wvn, eup)
-    F_dn = spect_int(wvn, edn)
-    J_dir = spect_int(wvn, ent_flux(wvn, edir, radtype=radtype, angle='dir'))
-    J_up = spect_int(wvn, ent_flux(wvn, eup, radtype=radtype, angle='diff'))
-    J_dn = spect_int(wvn, ent_flux(wvn, edn, radtype=radtype, angle='diff'))
-    s = spect_int(wvn, sdots[2])
-    s_r = spect_int(wvn, sdots[1])
-    s_m = spect_int(wvn, sdots[0])
+    sdots = sdot_calc(quants, radtype=radtype, debug=False)
+    entdir = ent_flux(wvn, edir, radtype=radtype, angle='dir') 
+    entup = ent_flux(wvn, eup, radtype=radtype, angle='diff')   
+    entdn = ent_flux(wvn, edn, radtype=radtype, angle='diff')
+    Fdir = spect_int(wvn, edir)
+    Fup = spect_int(wvn, eup)
+    Fdn = spect_int(wvn, edn)
+    Jdir = spect_int(wvn, entdir)
+    Jup = spect_int(wvn, entup)
+    Jdn = spect_int(wvn, entdn)
+    sdot = spect_int(wvn, sdots[2])
+    sdotr = spect_int(wvn, sdots[1])
+    sdotm = spect_int(wvn, sdots[0])
     Q = spect_int(wvn, heat)
-    Q_check = spect_int(wvn, sdots[3])
+    Qcheck = spect_int(wvn, sdots[3])
     
+    # Make dictionaries
+    ts = {'z':z, 'edir':edir, 'eup':eup, 'edn':edn, 'entdir':entdir, 
+          'entup':entup, 'entdn':entdn, 'Fdir':Fdir, 'Fup':Fup, 
+          'Fdn':Fdn, 'Jdir':Jdir, 'Jup':Jup, 'Jdn':Jdn, 
+          'sdot':sdot, 'sdotr':sdotr, 'sdotm':sdotm, 'Q':Q, 'Qcheck':Qcheck}
+    us = {'z':'(m)', 'edir':'(W m-2 m)', 'eup':'(W m-2 m)', 'edn':'(W m-2 m)', 
+          'entdir':'(W m-2 K-1 m)', 'entup':'(W m-2 K-1 m)', 
+          'entdn':'(W m-2 K-1 m)', 'Fdir':'(W m-2)', 'Fup':'(W m-2)', 
+          'Fdn':'(W m-2)', 'Jdir':'(W m-2 K-1)', 'Jup':'(W m-2 K-1)', 
+          'Jdn':'(W m-2 K-1)', 'sdot':'(W m-3 K-1)', 'sdotr':'(W m-3 K-1)', 
+          'sdotm':'(W m-3 K-1)', 'Q':'(K day-1)', 'Qcheck':'(K day-1)'}
+    us_ltx = {'z':'(m)', 'edir':'(W\ m^{-2}\ m)', 'eup':'(W\ m^{-2}\ m)', 
+              'edn':'(W\ m^{-2}\ m)', 'entdir':'(W\ m^{-2}\ K^{-1}\ m)', 
+              'entup':'(W\ m^{-2}\ K^{-1}\ m)', 
+              'entdn':'(W\ m^{-2}\ K^{-1}\ m)', 'Fdir':'(W\ m^{-2})', 
+              'Fup':'(W\ m^{-2})', 'Fdn':'(W\ m^{-2})', 
+              'Jdir':'(W\ m^{-2}\ K^{-1})', 'Jup':'(W\ m^{-2}\ K^{-1})', 
+              'Jdn':'(W\ m^{-2}\ K^{-1})', 'sdot':'(W\ m^{-3}\ K^{-1})', 
+              'sdotr':'(W\ m^{-3}\ K^{-1})', 'sdotm':'(W\ m^{-3}\ K^{-1})', 
+              'Q':'(K\ day^{-1})', 'Qcheck':'(K\ day^{-1})'}
+    #z_plot = ['Fdir', 'Fup', 'Fdn', 'Jdir', 'Jup', 'Jdn', 'sdot', 'sdotr', 
+    #          'sdotm', 'Q', 'Qcheck']
+    
+    # Make plots
+    for zplot in z_plots:
+        _plot_vertical(z, quant=zplot, tu=(ts,us_ltx))
+    _plot_levels(wvn, z, quants=lev_plots, tu=(ts,us_ltx), levels=levels)
+    
+    # Write material entropy
     out = open("libradtran/entropy_budget_{0}.txt".format(radtype), 'w')
-    out.write('{0:>10} {1:>11} {2:>11} {3:>11} {4:>11} {5:>11} {6:>11} {7:>11} {8:>11} {9:>11} {10:>11} {11:>11}\n'.format('z ', 'F_dir ', 'F_up ', 'F_dn ', 'J_dir ', 'J_up ', 'J_dn ', 'sdot ', 'sdot_r ', 'sdot_m ', 'Q ', 'Q_check '))
-    out.write('{0:>10} {1:>11} {2:>11} {3:>11} {4:>11} {5:>11} {6:>11} {7:>11} {8:>11} {9:>11} {10:>11} {11:>11}\n'.format('(km)', '(W m-2)', '(W m-2)', '(W m-2)', '(W m-2 K-1)', '(W m-2 K-1)', '(W m-2 K-1)', '(W m-3 K-1)', '(W m-3 K-1)', '(W m-3 K-1)', '(K day-1)', '(K day-1)'))
+    out.write('{0:>9} {1:>11} {2:>11} {3:>11} {4:>11} {5:>11} {6:>11} ' \
+              '{7:>11} {8:>11} {9:>11} {10:>11} {11:>11}\n'
+              .format('z ', 'Fdir ', 'Fup ', 'Fdn ', 'Jdir ', 'Jup ', \
+              'Jdn ', 'sdot ', 'sdotr ', 'sdotm ', 'Q ', 'Qcheck '))
+    out.write('{0:>9} {1:>11} {2:>11} {3:>11} {4:>11} {5:>11} {6:>11} ' \
+              '{7:>11} {8:>11} {9:>11} {10:>11} {11:>11}\n'
+              .format(us['z'], us['Fdir'], us['Fup'], us['Fdn'], us['Jdir'], \
+              us['Jup'], us['Jdn'], us['sdot'], us['sdotr'], us['sdotm'], \
+              us['Q'], us['Qcheck']))
     for i in range(len(z)):
-        out.write('{0:>10.3f} {1:>11.2E} {2:>11.2E} {3:>11.2E} {4:>11.2E} {5:>11.2E} {6:>11.2E} {7:>11.2E} {8:>11.2E} {9:>11.2E} {10:>11.2E} {11:>11.2E}\n'.format(z[i], F_dir[i], F_up[i], F_dn[i], J_dir[i], J_up[i], J_dn[i], s[i], s_r[i], s_m[i], Q[i], Q_check[i]))
+        out.write('{0:>9.3f} {1:>11.2E} {2:>11.2E} {3:>11.2E} {4:>11.2E} ' \
+                  '{5:>11.2E} {6:>11.2E} {7:>11.2E} {8:>11.2E} {9:>11.2E} ' \
+                  '{10:>11.2E} {11:>11.2E}\n'
+                  .format(z[i], Fdir[i], Fup[i], Fdn[i], Jdir[i], Jup[i], \
+                  Jdn[i], sdot[i], sdotr[i], sdotm[i], Q[i], Qcheck[i]))
     
-    rad = J_up[0]-J_dn[0]-J_dir[0]
-    mat = -(F_up[0]-F_dn[0]-F_dir[0])/T[0]
-    net = rad + mat
-    out.write('\nSurface entropy (W m-2 K-1): rad = {0}, mat = {1}, net = {2}'
-              .format(rad, mat, net))
-    
+    rad = Jup[0]-Jdn[0]-Jdir[0]
+    mat = -(Fup[0]-Fdn[0]-Fdir[0])/T[0]
+    sfc = rad + mat
+    out.write('\nSfc ent (W m-2 K-1): rad = {0:.3E}, mat = {1:.3E}, ' \
+              'net = {2:.3E}'.format(rad, mat, sfc))
+    rad = np.trapz(sdotr, z)
+    mat = np.trapz(sdotm, z)
+    atm = rad + mat
+    out.write('\nAtm ent (W m-2 K-1): rad = {0:.3E}, mat = {1:.3E}, ' \
+              'net = {2:.3E}'.format(rad, mat, atm))
+    toaup = Jup[-1]
+    toadir = -Jdir[-1]
+    toa = Jup[-1]-Jdir[-1]
+    out.write('\nTOA ent (W m-2 K-1):  up = {0:.3E}, dir = {1:.3E}, ' \
+              'net = {2:.3E}'.format(toaup, toadir, toa))
+    net = toa - sfc - atm
+    out.write('\n\nNet material entropy: {0:.3E} (W m-2 K-1)'.format(net))
     out.close()
+    
+    # Write TOA
+    toa = open("libradtran/entropy_budget_toa_{0}.txt".format(radtype), 'w')
+    toa.write('{0:>8} {1:>13} {2:>13} {3:>13} {4:>13}\n'
+              .format('wvl ', 'eup ', 'edir ', 'entup ', 'entdir '))
+    toa.write('{0:>8} {1:>13} {2:>13} {3:>13} {4:>13}\n'
+              .format('(nm)', us['eup'], us['edir'], us['entup'], us['entdir']))
+    for i in range(len(wvn)):
+        toa.write('{0:>8.3f} {1:>13.3E} {2:>13.3E} {3:>13.3E} {4:>13.3E}\n'
+              .format(1.0e9/wvn[i], eup[i,-1], edir[i,-1], entup[i,-1], \
+              entdir[i,-1]))
+    toa.write('\n{0:>8} {1:>13.3E} {2:>13.3E} {3:>13.3E} {4:>13.3E}\n'
+              .format('spec_int', Fup[-1], Fdir[-1], Jup[-1], Jdir[-1]))
+    toa.close()
 
-flux_output('0solar_rep', radtype='sw')
-
+flux_output('0solar_rep', radtype='sw', z_plots=['sdotr','sdotm'], lev_plots=['entdir','entup','entdn'], levels=[0,25])
+plt.show()
 
 
 

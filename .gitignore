@@ -11,10 +11,10 @@ initial_files/
 libradtran/
 
 # Links
+datasets
 Jo
 examples
 osse_lw
 osse_sw
 uvspec
-datasets
 data

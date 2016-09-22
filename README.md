@@ -1,19 +1,17 @@
-Entropy and intensity calculations
+Entropy and radiation intensity calculations
 
-Temporarily, issues are listed below:
--------------------------------------
-papers / GIT (priority) / bash scripting
 -------------------------------------
 ToDo:
 
--1. Request one overlapping years
--2. Lowtran works with thermal, try for solar (vs reptran)
--3. Keep notes and comments of all assumptions and calculations
+-1. Lowtran vs reptran vs initial file
+-2. Keep notes and comments of all assumptions and calculations
+3. mat_ent.py (check lib output and code units, calculations, lw)
 4. Calculate sza theoretically
-5. mat_ent.py (check libradtran output units and code units, calculations, plots, output files)
-6. Check time evolution between years 500 and 550
-   Choose year for 3D grids (make netcdf file out of netcdf avging)
-7. exported graphs (colorbar consistency, framing)
+5. Check time evolution between years 500 and 550
+   Choose years for 3D grids (make netcdf file out of netcdf avging)
+6. exported graphs (colorbar consistency, framing)
+7. tidy up directories
+8. script to run code through lat&lon&months
 -------------------------------------
 Modules:
 
