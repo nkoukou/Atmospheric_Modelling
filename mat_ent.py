@@ -3,7 +3,6 @@ This module reads libradtran output and calculates material entropy.
 '''
 
 import numpy as np
-import collections
 import matplotlib.pylab as plt
 import matplotlib.ticker as mtk
 import scipy.interpolate as sci

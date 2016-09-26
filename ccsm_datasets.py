@@ -5,17 +5,20 @@ input for the libradtran code.
 
 from netCDF4 import Dataset
 import numpy as np
+from numpy import sin, cos, tan
 import matplotlib.pylab as plt
 
-# Physical constants
+# Physical constants and pi
+pi = np.pi
 kb=1.38e-23      # kg m^2 s^-2 K^-1
 T0 = 273.15      # K
 air0 = 1.2754e-3 # g cm^-3 (air density at T0 and P0=100kPa)
 
-# Import netCDF files
-def loadnetcdf(year, month, control=True):
+# Import netCDF datasets
+def loadnetcdf(month, year, control=True):
     '''
-    Loads netCDF histroy dataset for given year and month.
+    Loads netCDF history dataset for given year and month. 
+    All years have 365 days.
     '''
     if control:
         fdir = "datasets/ccsm/control/b30.031.cam2.h0.{0}-{1}.nc"\
@@ -25,28 +28,71 @@ def loadnetcdf(year, month, control=True):
                .format(str(year).zfill(4), str(month).zfill(2))
     return Dataset(fdir)
 
-m = loadnetcdf(500,1)
+def avgnetcdf(month, years=[500,550], control=True):
+    '''
+    Averages all netcdf datasets between year boundaries (years) for given 
+    month, producing a netcdf dataset.
+    '''
+    if control:
+        dataset = Dataset("datasets/ccsm/control/avg{0}"
+                          .format(str(month).zfill(2)), 'w')
+    else:
+        dataset = Dataset("datasets/ccsm/double/avg{0}"
+                          .format(str(month).zfill(2)), 'w')
+    end = loadnetcdf(year=years[1], month=month, control=control)
+    count, yrs = 1, []
+    for yr in range(years[0], years[1]):
+        try: loadnetcdf(year=yr, month=month, control=control)
+        except: continue
+        count += 1
+        yrs.append(yr)
+    
+    for dim in end.dimensions.keys():
+        dataset.createDimension(dim, end.dimensions[dim].size)
+    for var in end.variables.keys():
+        varr = end.variables[var]
+        new = dataset.createVariable(var, varr.dtype, varr.dimensions)
+        if not var.isupper(): # !!! add units with try&except
+            new[:] = varr[:]
+            continue
+        new.units = varr.units
+        new[:] = varr[:]/count
+        for yr in yrs:
+            temp = loadnetcdf(year=yr, month=month, control=control)
+            new[:] += temp.variables[var][:]/count
+    return dataset
+
+def avg_all(years=[500, 550]):
+    '''
+    Averages all netcdf datasets between year boundaries (years), by running 
+    avg_netcdf for all months and both control and double CO2 runs.
+    '''
+    for month in range(1,13):
+        avgnetcdf(month, years=years, control=True)
+        avgnetcdf(month, years=years, control=False)
+        print 'DONE', month
+
+def select_avg(month, control=True):
+    '''
+    Selects averaged netcdf file corresponding to the given month from either 
+    the control or the double CO2 runs. 
+    '''
+    if control:
+        fdir = "datasets/ccsm/control/avg{0}".format(str(month).zfill(2))
+    else:
+        fdir = "datasets/ccsm/double/avg{0}".format(str(month).zfill(2))
+    return Dataset(fdir)
 
 # Testing data
 def show_vars(filename):
     for var in filename.variables.keys():
         print var, filename.variables[var].shape
 
-#show_vars(m1)
-#m=m2.variables['CLDICE'][0]-m1.variables['CLDICE'][0]
-#print m.max()
-#print m1.variables['T'][:]
-#print m1.variables['CLOUD'][0][:,40,67]
-#print '---------'
-#print m1.variables['time']
-#for i in range(14,21):
-#    x=m1.variables['Z3'][0][i,:,80]
-#    plt.plot(lat, x)
-#plt.show()
-#print Deltah.mean(axis=(1,2))/Deltah.std(axis=(1,2))
+n=select_avg(4, False)
+#show_vars(n)
 
-# Libradtran input file
-def constants(dataset):
+# Read netCDF datasets
+def grid(dataset):
     '''
     Returns arrays of latitude, longitude, level and constant P0, which are 
     common throughout datasets.
@@ -54,20 +100,11 @@ def constants(dataset):
     lat and lon are converted into lists (each element is of the form N 80 for 
     latitude of 80 degrees North).
     '''
-    latt, lonn = dataset.variables['lat'][:], dataset.variables['lon'][:]-180.0
-    lat, lon = [], []                       # deg, deg
-    for lt in latt:
-        if lt>=0: lat.append('N '+str(lt))
-        elif lt<0: lat.append('S '+str(-lt))
-    for ln in lonn:
-        if ln>=0: lon.append('E '+str(ln))
-        elif ln<0: lon.append('W '+str(-ln))
-    lev = dataset.variables['lev'][:]       # level
-    P0 = dataset.variables['P0'][:]         # Pa
-    # !!!(test time evolution) add 1410 years to fit year between 1900-2000
-    date = str(dataset.variables['date'][0]+14100000)
-    time = date[:-4].zfill(4), date[-4:-2], date[-2:]
-    return P0, lat, lon, lev, time
+    lat = np.around(dataset.variables['lat'][:], 3) # deg
+    lon = np.around(dataset.variables['lon'][:], 3) # deg
+    lev = dataset.variables['lev'][:]               # level
+    time = dataset.variables['time'][:]%365         # days since start of year
+    return lat, lon, lev, time
 
 def variables(dataset, nlat, nlon):
     '''
@@ -91,7 +128,7 @@ def variables(dataset, nlat, nlon):
     rho is calculated at all grid points and the units are converted to vapour 
     mass density = fraction*rho. 
     '''
-    P0 = constants(dataset)[0]                                  # Pa
+    P0 = dataset.variables['P0'][:]                             # Pa
     PS = dataset.variables['PS'][0]                             # Pa
     A = dataset.variables['hyam'][:]                            # fraction
     B = dataset.variables['hybm'][:]                            # fraction
@@ -107,6 +144,35 @@ def variables(dataset, nlat, nlon):
            air_rho[:,nlat,nlon], rQ[:,nlat,nlon], \
            wc[:,nlat,nlon], ic[:,nlat,nlon], cfrac[:,nlat,nlon]
 
+def sza_calc(dataset, nlat):
+    '''
+    Calculates the solar zenith angle (at a particular grid point specified by 
+    latitude and longitude) averaged over a month as an approximation to the 
+    monthly averaged data from the CCSM experiments.
+    
+    Declination dec is calculated throughout the year by taking the reference 
+    maximum declination of the Sun as 23.45 and starting from 0.0 on March 21st 
+    (day 80 since start of the year).
+    
+    Standard spherical geometry is used for the rest of the calculations.
+    '''
+    lat, time = grid(dataset)[0], grid(dataset)[-1]
+    lat = np.radians(lat[nlat])
+    if time==59.0: dt = 28
+    elif time in [120.0, 181.0, 273.0, 334.0]: dt = 30
+    else: dt = 31
+    time = np.arange(time+1-dt, time+1)
+    
+    dec = pi * 23.45/180 * sin(2*pi/365 * (time - 80))
+    hour_set = np.arccos(-tan(lat)*tan(dec))
+    hour_rise = -hour_set
+    
+    cos_z = 1/(2*pi) * (sin(lat)*sin(dec)*(hour_set-hour_rise) + 
+                        cos(lat)*cos(dec)*(sin(hour_set)-sin(hour_rise)))
+    z = np.around(180/pi * np.arccos(np.mean(cos_z)), 3)
+    return z
+
+# Create libradtran input files
 def spec_file(spec, lat, lon, z, Q, u):
     '''
     Creates mol_files for libradtran input. They indicate species densities in 
@@ -160,7 +226,7 @@ def atmosphere_profile(dataset, nlat, nlon, species=['H2O'], clouds=True):
     '''
     Creates atmosphere file for libradtran input.
     '''
-    lat, lon = constants(dataset)[1][nlat], constants(dataset)[2][nlon]
+    lat, lon = grid(dataset)[0][nlat], grid(dataset)[1][nlon]
     z, P, T, air_rho, rQ, wc, ic, cf = variables(dataset, nlat, nlon)
     
     atmosphere_file = open("libradtran/atmosphere_file.dat", 'w')
@@ -179,10 +245,9 @@ def atmosphere_profile(dataset, nlat, nlon, species=['H2O'], clouds=True):
     
     if clouds:
         cloud_file(cf, wc, ic, lat, lon, z)
-        
 
 def libra_input(dataset, nlat, nlon, wvl=[250, 5000], source='solar', 
-                species=['H2O'], clouds=True, error='verbose'):
+                species=['H2O'], clouds=True, control=True, error='verbose'):
     '''
     Creates a libradtran input file along with the other necessary files 
     corresponding to the dataset and the (lat, lon) coordinates.
@@ -191,25 +256,26 @@ def libra_input(dataset, nlat, nlon, wvl=[250, 5000], source='solar',
     thermal (LW radiation => edir==0) calculations respectively.
     
     species refer to the gas species that are present in the atmosphere. CO2 is 
-    set to a specific value throughout the atmosphere (8.45e21 cm^2). Data for 
-    other species not included in the list are taken from US standard tables.
+    set to a specific value throughout the atmosphere (8.45e21 cm^2 for the 
+    control run). Data for other species not included in the list are taken 
+    from US standard tables.
     
     Parameter error corresponds to the error handling during the execution of 
     the libradtran code.
     
-    !!! try kato
+    !!! try kato, do I just double CO2 for experiment?
     '''
     inp = open("libradtran/test.inp", 'w')
     
     inp.write('# Wavelength grid and source\n')
     if source=='solar':
-        inp.write('wavelength {0} {1} # nm\n'.format(wvl[0], wvl[1]))
+        inp.write('wavelength {0} {1}    # nm\n'.format(wvl[0], wvl[1]))
         inp.write('source solar ../data/solar_flux/kurudz_1.0nm.dat per_nm\n')
         param='reptran'
     elif source=='thermal':
-        inp.write('wavelength {0} {1} # nm\n'.format(wvl[0], wvl[1]))
+        inp.write('wavelength {0} {1}    # nm\n'.format(wvl[0], wvl[1]))
         inp.write('source thermal\n')
-        #inp.write('spline {0} {1} 1 # nm\n'.format(wvl[0], wvl[1]))
+        #inp.write('spline {0} {1} 1    # nm\n'.format(wvl[0], wvl[1]))
         param='lowtran'
     inp.write('\n')
     
@@ -220,8 +286,13 @@ def libra_input(dataset, nlat, nlon, wvl=[250, 5000], source='solar',
     inp.write('## Species\n')
     if 'H2O' in species:
         inp.write('mol_file H2O H2O_file.dat rh\n')
-    CO2_value = 8.45e21 # cm^2
-    inp.write('mol_modify CO2 {0} CM_2\n'.format(CO2_value))
+    if control:
+        CO2_value = 8.45e21     # cm^2
+        control = 'Control run'
+    else:
+        CO2_value = 2 * 8.45e21 # cm^2
+        control = 'Double CO2 run'
+    inp.write('mol_modify CO2 {0} CM_2    # {1}\n'.format(CO2_value, control))
     if clouds:
         inp.write('## Clouds\n')
         inp.write('wc_file 1D wc_file.dat\n')
@@ -232,13 +303,12 @@ def libra_input(dataset, nlat, nlon, wvl=[250, 5000], source='solar',
         inp.write('cloud_overlap maxrand\n')
     inp.write('\n')
     
-    # !!! Find sza and fix all lat, lon, time instances in the code
     inp.write('# Geometry\n')
-    lat, lon = constants(dataset)[1][nlat], constants(dataset)[2][nlon]
-    YYYY, MM, DD = constants(dataset)[-1]
-    inp.write('#latitude {0}\n'.format(lat))
-    inp.write('#longitude {0}\n'.format(lon))
-    inp.write('#time {0} {1} {2} 00 00 00\n'.format(YYYY, MM, DD))
+    lat, lon = grid(dataset)[0][nlat], grid(dataset)[1][nlon]
+    sza = sza_calc(dataset, nlat)
+    inp.write('#latitude {0}    # (-90, 90)\n'.format(lat))
+    inp.write('#longitude {0}    # (0, 360)\n'.format(lon))
+    inp.write('sza {0}\n'.format(sza))
     inp.write('\n')
     
     inp.write('# Radiative transfer equation\n')
@@ -256,11 +326,28 @@ def libra_input(dataset, nlat, nlon, wvl=[250, 5000], source='solar',
     inp.write('{0}\n'.format(error))
     inp.close()
 
-libra_input(m, 30, 60, wvl=[2000, 2500], source='thermal', 
-            species=['H2O'], clouds=True, error='verbose')
+libra_input(n, 30, 60, wvl=[250, 5000], source='solar', species=['H2O'], 
+            clouds=True, control=False, error='verbose')
 
 
 
+'''
+m = loadnetcdf(4,500)
+n=select_avg(4,False)
+#show_vars(n)
+#diff=m500.variables['PS'][0]+m525.variables['PS'][0]+m550['PS'][0]-3*n['PS'][0]
+#minn = diff.min()/m550.variables['PS'][0]; maxx=diff.max()/m550.variables['PS'][0]
+#print minn.max(), maxx.max()
+#print m1.variables['CLOUD'][0][:,40,67]
+#print m550.variables['hybm'][:] - m525.variables['hybm'][:]
+#print '---------'
+#print n.variables['T'][:].shape
+#for i in range(14,21):
+#    x=m1.variables['Z3'][0][i,:,80]
+#    plt.plot(lat, x)
+#plt.show()
+#print Deltah.mean(axis=(1,2))/Deltah.std(axis=(1,2))
+'''
 
 
 
