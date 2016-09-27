@@ -2,6 +2,9 @@
 *.swp
 randomseed
 
+# Gedit extensions
+.gout*
+
 # Python extensions
 *.pyc
 *.py~

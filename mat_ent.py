@@ -1,5 +1,6 @@
 '''
-This module reads libradtran output and calculates material entropy.
+This module reads libradtran output and calculates material entropy. It is an 
+adaptation of entropy_budget_SW2.pro and entropy_budget_LW2.pro.
 '''
 
 import numpy as np
@@ -27,7 +28,7 @@ def load_output(filename, radtype='sw', only_output=False):
     - z (altitude, km converts to m)
     - T (temperature, K)
     - rho_air (air density, kg m^-3)
-    - edir (direct flux, W m^-2 nm^-1 converts to W m^-2 m) !!! kurudz has mW??
+    - edir (direct flux, mW m^-2 nm^-1 converts to W m^-2 m) !!! kurudz has mW??
     - edn (upwards diffuse flux, same as edir)
     - eup (downwards diffuse flux, same as edir)
     - heat (heating rate, K day^-1 nm^-1 converts to K day^-1 m)
@@ -44,16 +45,18 @@ def load_output(filename, radtype='sw', only_output=False):
     
     output = output[:,4:].reshape(len(wvl), znum, 4)
     units = 1.0e-9*wvl[:,None]*wvl[:,None]
+    heat = output[:,:,3] * units
+    if radtype=='sw':
+        units *= 1.0e-3
     edir = output[:,:,0] * units
     edn = output[:,:,1] * units
     eup = output[:,:,2] * units
-    heat = output[:,:,3] * units
     
     if only_output: return edir, edn, eup, heat 
     return wvn, z, T, rho_air, edir, edn, eup, heat
 
 # Math and physics conversion functions
-def ent_flux(wvn, rad, radtype='sw', angle='dir'):
+def ent_flux(wvn, rad, angle='dir'):
     '''
     Converts intensity to entropy flux with units W m^-2 m K^-1.
     
@@ -67,7 +70,7 @@ def ent_flux(wvn, rad, radtype='sw', angle='dir'):
     y = intens/(2*h*c*c*wvn**3)
     np.seterr(all='ignore')
     ent1 = np.where(y>=0.01, (1+y)*np.log(1+y), (1+y)*(y - y*y/2 + y**3/3))
-    # Since y > -1e10, all y < 0 are converted to 0 in ent2
+    # Since usually y > -1e-10, all y < 0 are converted to 0 in ent2
     ent2 = np.where(y>0.0, -y*np.log(y), 0.0) 
     ent = np.where(y!=0.0, 2*kb*c*wvn*wvn*(ent1+ent2)*ang, 0.0)
     np.seterr(all='warn')
@@ -84,16 +87,6 @@ def deriv(z, rad):
         derv[i,:] = sci.splev(z, tck, der=1)
     return derv
 
-def spect_int(wvn, rad):
-    '''
-    Evaluates the spectral integral of given radiation flux or entropy over 
-    given wavenumber range (1D wvn array and 2D rad array).
-    '''
-    intg = np.zeros(rad.shape[1])
-    for i in range(rad.shape[1]):
-        intg[i] = -np.trapz(rad[:,i], wvn)
-    return intg
-
 # Analysis
 def heat_check(z, rho_air, edir, edn, eup):
     '''
@@ -103,7 +96,7 @@ def heat_check(z, rho_air, edir, edn, eup):
     check = (deriv(z, edir)+deriv(z, edn)+deriv(z, eup))*const
     return check
 
-def sdot_calc(quants, radtype='sw', debug=False):
+def sdot_calc(quants, debug=False):
     '''
     Returns material, radiation and total entropy rates and a heat check.
     Entropy rates are in units W m^-3 K^-1 m.
@@ -112,9 +105,9 @@ def sdot_calc(quants, radtype='sw', debug=False):
     only_output=False.
     '''
     wvn, z, T, rho_air, edir, edn, eup, heat = quants
-    ent_dir = ent_flux(wvn, edir, radtype=radtype, angle='dir')
-    ent_dn = ent_flux(wvn, edn, radtype=radtype, angle='diff')
-    ent_up = ent_flux(wvn, eup, radtype=radtype, angle='diff')
+    ent_dir = ent_flux(wvn, edir, angle='dir')
+    ent_dn = ent_flux(wvn, edn, angle='diff')
+    ent_up = ent_flux(wvn, eup, angle='diff')
     
     sdotmat = cp/sid * rho_air[None,:]/T[None,:] * heat
     sdotrad = deriv(z, ent_up) - deriv(z, ent_dn) - deriv(z, ent_dir)
@@ -139,13 +132,13 @@ def _plot_vertical(z, quant, tu):
     '''
     Plots a spectrally integrated quantity over all altitudes.
     
-    Parameter tu is a tuple of titles and units to associate with the quants. 
+    Parameter tu is a tuple of titles and units associated with the quants. 
     It is provided when the function runs from within flux_output().
     '''
     ts, us = tu
     fig = plt.figure()
     plt.plot(z/1000, ts[quant])
-    ax.set_title('{0}'.format(quant))
+    plt.title('{0}'.format(quant))
     plt.xlabel('$z\ (km)$')
     plt.ylabel('${0}\ {1}$'.format(quant, us[quant]))
 
@@ -156,7 +149,7 @@ def _plot_levels(wvn, z, quants, tu, levels=[25]):
     level. If only one quant is provided it is plotted on one plot for all 
     levels.
     
-    Parameter tu is a tuple of titles and units to associate with the quants. 
+    Parameter tu is a tuple of titles and units associated with the quants. 
     It is provided when the function runs from within flux_output().
     '''
     if quants==[]: return
@@ -210,21 +203,21 @@ def flux_output(filename, radtype='sw', z_plots=[], lev_plots=[], levels=[0,25])
     # Load quantities
     quants = load_output(filename, radtype=radtype, only_output=False)
     wvn, z, T, rho_air, edir, edn, eup, heat = quants
-    sdots = sdot_calc(quants, radtype=radtype, debug=False)
-    entdir = ent_flux(wvn, edir, radtype=radtype, angle='dir') 
-    entup = ent_flux(wvn, eup, radtype=radtype, angle='diff')   
-    entdn = ent_flux(wvn, edn, radtype=radtype, angle='diff')
-    Fdir = spect_int(wvn, edir)
-    Fup = spect_int(wvn, eup)
-    Fdn = spect_int(wvn, edn)
-    Jdir = spect_int(wvn, entdir)
-    Jup = spect_int(wvn, entup)
-    Jdn = spect_int(wvn, entdn)
-    sdot = spect_int(wvn, sdots[2])
-    sdotr = spect_int(wvn, sdots[1])
-    sdotm = spect_int(wvn, sdots[0])
-    Q = spect_int(wvn, heat)
-    Qcheck = spect_int(wvn, sdots[3])
+    sdots = sdot_calc(quants, debug=False)
+    entdir = ent_flux(wvn, edir, angle='dir') 
+    entup = ent_flux(wvn, eup, angle='diff')   
+    entdn = ent_flux(wvn, edn, angle='diff')
+    Fdir = -np.trapz(edir, wvn, axis=0)
+    Fup = -np.trapz(eup, wvn, axis=0)
+    Fdn = -np.trapz(edn, wvn, axis=0)
+    Jdir = -np.trapz(entdir, wvn, axis=0)
+    Jup = -np.trapz(entup, wvn, axis=0)
+    Jdn = -np.trapz(entdn, wvn, axis=0)
+    sdot = -np.trapz(sdots[2], wvn, axis=0)
+    sdotr = -np.trapz(sdots[1], wvn, axis=0)
+    sdotm = -np.trapz(sdots[0], wvn, axis=0)
+    Q = -np.trapz(heat, wvn, axis=0)
+    Qcheck = -np.trapz(sdots[3], wvn, axis=0)
     
     # Make dictionaries
     ts = {'z':z, 'edir':edir, 'eup':eup, 'edn':edn, 'entdir':entdir, 
@@ -246,8 +239,6 @@ def flux_output(filename, radtype='sw', z_plots=[], lev_plots=[], levels=[0,25])
               'Jdn':'(W\ m^{-2}\ K^{-1})', 'sdot':'(W\ m^{-3}\ K^{-1})', 
               'sdotr':'(W\ m^{-3}\ K^{-1})', 'sdotm':'(W\ m^{-3}\ K^{-1})', 
               'Q':'(K\ day^{-1})', 'Qcheck':'(K\ day^{-1})'}
-    #z_plot = ['Fdir', 'Fup', 'Fdn', 'Jdir', 'Jup', 'Jdn', 'sdot', 'sdotr', 
-    #          'sdotm', 'Q', 'Qcheck']
     
     # Make plots
     for zplot in z_plots:
@@ -284,7 +275,7 @@ def flux_output(filename, radtype='sw', z_plots=[], lev_plots=[], levels=[0,25])
               'net = {2:.3E}'.format(rad, mat, atm))
     toaup = Jup[-1]
     toadir = -Jdir[-1]
-    toa = Jup[-1]-Jdir[-1]
+    toa = toaup + toadir
     out.write('\nTOA ent (W m-2 K-1):  up = {0:.3E}, dir = {1:.3E}, ' \
               'net = {2:.3E}'.format(toaup, toadir, toa))
     net = toa - sfc - atm
@@ -305,7 +296,8 @@ def flux_output(filename, radtype='sw', z_plots=[], lev_plots=[], levels=[0,25])
               .format('spec_int', Fup[-1], Fdir[-1], Jup[-1], Jdir[-1]))
     toa.close()
 
-flux_output('0solar_rep', radtype='sw', z_plots=['sdotr','sdotm'], lev_plots=['entdir','entup','entdn'], levels=[0,25])
+flux_output('0solar_rep', radtype='sw', z_plots=[], lev_plots=[], 
+	    levels=[0,25])
 plt.show()
 
 
