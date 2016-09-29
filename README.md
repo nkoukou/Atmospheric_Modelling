@@ -5,12 +5,14 @@ ToDo:
 
 -1. Lowtran vs reptran vs initial file
 -2. Keep notes and comments of all assumptions and calculations
--3. Calculate sza theoretically
--4. Check time evolution between years 500 and 550 (add more years?)
-5. mat_ent.py (check lib output and code units, calculations, lw)
-6. exported graphs (colorbar consistency, framing)
-7. tidy up directories
+-3. Check time evolution between years 500 and 550 (add more years?)
+4. exported graphs (colorbar consistency, framing)
+5. tidy up directories, fix ALL links in code
+6. code design (% -> .format(), check !!!, np.trapz, ...)
+7. Full README.md
 8. script to run code through lat&lon&months
+   (what happens at extreme lat?, other limitations?)
+
 -------------------------------------
 Modules:
 

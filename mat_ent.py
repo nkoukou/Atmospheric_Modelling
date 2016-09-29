@@ -4,6 +4,7 @@ adaptation of entropy_budget_SW2.pro and entropy_budget_LW2.pro.
 '''
 
 import numpy as np
+from numpy import nan_to_num as nn
 import matplotlib.pylab as plt
 import matplotlib.ticker as mtk
 import scipy.interpolate as sci
@@ -28,7 +29,8 @@ def load_output(filename, radtype='sw', only_output=False):
     - z (altitude, km converts to m)
     - T (temperature, K)
     - rho_air (air density, kg m^-3)
-    - edir (direct flux, mW m^-2 nm^-1 converts to W m^-2 m) !!! kurudz has mW??
+    - edir (direct flux, mW m^-2 nm^-1 or W m^-2 nm^-1 (for solar and thermal 
+      calculations respectively) converts to W m^-2 m)
     - edn (upwards diffuse flux, same as edir)
     - eup (downwards diffuse flux, same as edir)
     - heat (heating rate, K day^-1 nm^-1 converts to K day^-1 m)
@@ -71,7 +73,7 @@ def ent_flux(wvn, rad, angle='dir'):
     np.seterr(all='ignore')
     ent1 = np.where(y>=0.01, (1+y)*np.log(1+y), (1+y)*(y - y*y/2 + y**3/3))
     # Since usually y > -1e-10, all y < 0 are converted to 0 in ent2
-    ent2 = np.where(y>0.0, -y*np.log(y), 0.0) 
+    ent2 = np.where(y>0.0, -y*np.log(y), 0.0)
     ent = np.where(y!=0.0, 2*kb*c*wvn*wvn*(ent1+ent2)*ang, 0.0)
     np.seterr(all='warn')
     return ent
@@ -93,7 +95,7 @@ def heat_check(z, rho_air, edir, edn, eup):
     Estimates the libradtran heat input in units K day^-1 m for comparison.
     '''
     const = sid/cp/rho_air[None,:]
-    check = (deriv(z, edir)+deriv(z, edn)+deriv(z, eup))*const
+    check = (deriv(z, edir)+deriv(z, edn)-deriv(z, eup))*const
     return check
 
 def sdot_calc(quants, debug=False):
@@ -113,17 +115,6 @@ def sdot_calc(quants, debug=False):
     sdotrad = deriv(z, ent_up) - deriv(z, ent_dn) - deriv(z, ent_dir)
     sdot = sdotmat + sdotrad
     check = heat_check(z, rho_air, edir, edn, eup)
-    
-    if debug: # !!!
-        print ent_dn.size,'\n'
-        print 'ent_dir', len(ent_dir[ent_dir==0])#, ' / ', len(edir[edir<=0])
-        print '--------------------'
-        print 'ent_dn', len(ent_dn[ent_dn==0])
-        print '--------------------'
-        print 'ent_up', len(ent_up[ent_up==0])
-        print '--------------------'
-        print 'sdotrad', len(sdotrad[sdotrad<0])
-        print sdotrad
     
     return sdotmat, sdotrad, sdot, check
 
@@ -198,11 +189,15 @@ def flux_output(filename, radtype='sw', z_plots=[], lev_plots=[], levels=[0,25])
     ts, us and us_ltx are dictionaries mapping titles to corresponding 
     quantities, units and units in latex format respectively.
     
-    !!! atm reaches 38km
+    Altitude from libradtran output reaches 37.6 km which is assumed to be the 
+    TOA because radiative and entropic quantities vary more slowly close to 
+    37.6 km as seen by the flux output produced by this function.
     '''
     # Load quantities
     quants = load_output(filename, radtype=radtype, only_output=False)
     wvn, z, T, rho_air, edir, edn, eup, heat = quants
+    wvn, z, T, rho_air = nn(wvn), nn(z), nn(T), nn(rho_air)
+    edir, edn, eup, heat = nn(edir), nn(edn), nn(eup), nn(heat)
     sdots = sdot_calc(quants, debug=False)
     entdir = ent_flux(wvn, edir, angle='dir') 
     entup = ent_flux(wvn, eup, angle='diff')   
@@ -213,11 +208,11 @@ def flux_output(filename, radtype='sw', z_plots=[], lev_plots=[], levels=[0,25])
     Jdir = -np.trapz(entdir, wvn, axis=0)
     Jup = -np.trapz(entup, wvn, axis=0)
     Jdn = -np.trapz(entdn, wvn, axis=0)
-    sdot = -np.trapz(sdots[2], wvn, axis=0)
-    sdotr = -np.trapz(sdots[1], wvn, axis=0)
-    sdotm = -np.trapz(sdots[0], wvn, axis=0)
+    sdot = -nn(np.trapz(sdots[2], wvn, axis=0))
+    sdotr = -nn(np.trapz(sdots[1], wvn, axis=0))
+    sdotm = -nn(np.trapz(sdots[0], wvn, axis=0))
     Q = -np.trapz(heat, wvn, axis=0)
-    Qcheck = -np.trapz(sdots[3], wvn, axis=0)
+    Qcheck = -nn(np.trapz(sdots[3], wvn, axis=0))
     
     # Make dictionaries
     ts = {'z':z, 'edir':edir, 'eup':eup, 'edn':edn, 'entdir':entdir, 
@@ -295,13 +290,6 @@ def flux_output(filename, radtype='sw', z_plots=[], lev_plots=[], levels=[0,25])
     toa.write('\n{0:>8} {1:>13.3E} {2:>13.3E} {3:>13.3E} {4:>13.3E}\n'
               .format('spec_int', Fup[-1], Fdir[-1], Jup[-1], Jdir[-1]))
     toa.close()
-
-flux_output('0solar_rep', radtype='sw', z_plots=[], lev_plots=[], 
-	    levels=[0,25])
-plt.show()
-
-
-
 
 
 
