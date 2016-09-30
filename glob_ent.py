@@ -8,8 +8,6 @@ from mpl_toolkits.basemap import Basemap, shiftgrid
 import calendar as cal
 from ent_datasets import months_in_year
 
-import time
-
 # Load datasets
 grid = np.load('datasets/earth_grid.npy')
 lat, lon = grid[:,0,0], grid[0,:,1]
@@ -32,9 +30,9 @@ def loadflux(month, re='r'):
     Parameter re takes the values 'r' and 'e' for radiation and entropy 
     fluxes respectively.
     '''
-    swl = np.load('datasets/flux/lres_sw%s%s.npy' % (re,month))
-    lw = np.load('datasets/flux/lw%s%s.npy' % (re,month))
-    lwc = np.load('datasets/flux/clr_lw%s%s.npy' % (re,month))
+    swl = np.load('datasets/flux/lres_sw{0}{1}.npy'.format(re,month))
+    lw = np.load('datasets/flux/lw{0}{1}.npy'.format(re,month))
+    lwc = np.load('datasets/flux/clr_lw{0}{1}.npy'.format(re,month))
     return np.array([swl, lw, lwc])
 
 titles = ['SW (low res)', 'LW', 'Clear sky LW']
@@ -70,10 +68,11 @@ def plot_flux(month, flux, re='r', info=False):
     s, u = is_re(re)
     m = calendar(month)
     fig = plt.figure()
-    fig.suptitle("Global "+s+" flux for "+m[1]+" "+m[0], fontsize=16)
+    fig.suptitle('Global {0} flux for {1} {2}'
+                 .format(s, m[1], m[0]), fontsize=16)
     for i in range(len(shflux)):
         ax = fig.add_subplot(2,2,i+2)
-        ax.set_title(titles[i]+" flux", fontsize=14)
+        ax.set_title('{0} flux'.format(titles[i]), fontsize=14)
         plot_map(xx, yy, shflux[i], u)
     plt.tight_layout()
     #plt.subplots_adjust(top=0.925)
@@ -94,12 +93,12 @@ def plot_diff(month1, month2, flux1, re='r', info=False):
     s, u = is_re(re)
     m1, m2 = calendar(month1), calendar(month2)
     fig = plt.figure()
-    fig.suptitle("Difference of "+s+" flux between "+m1[1]+" "
-                 +m1[0]+" and "+m2[1]+" "+m2[0], fontsize=16)
+    fig.suptitle('Difference of {0} flux between {1} {2} and {3} {4}'
+                 .format(s, m1[1], m1[0], m2[1], m2[0]), fontsize=16)
     
     for i in range(len(fdiff)):
         ax = fig.add_subplot(2,2,i+2)
-        ax.set_title(titles[i]+" flux difference", fontsize=14)
+        ax.set_title('{0} flux difference'.format(titles[i]), fontsize=14)
         plot_map(xx, yy, shfdiff[i], u)
     plt.tight_layout()
     #plt.subplots_adjust(top=0.925)
@@ -176,8 +175,12 @@ def analyse_month(month, re='r', diff=None, gmap=True, info=False):
     call function sumup for the flux data of the month.
     
     Parameter diff is a list of months to be compared with month, gmap and 
-    info plot the relevant maps and provide data information respectively, 
-    if True.
+    info plot the relevant maps and provide information on the data 
+    respectively, if True.
+    
+    For all types of radiation, info calls sumup(), then returns the flux data 
+    for given month and re, then returns  the difference in flux data from 
+    months in the diff list.
     '''
     flux = loadflux(month, re)
     if gmap:
@@ -201,7 +204,8 @@ def spec_analysis(month, re='r', radtype='swl', gmap=True, info=False):
     (SW, LW, Clear sky LW).
     
     Parameter radtype ('swl', 'lw', 'lwc') determines the type of flux. 
-    Parameter info returns data on differences between months.
+    Parameter info returns the latitude and longitude grid and the differences 
+    between flux data for neighbouring months.
     '''
     flux = np.array([loadflux(month, re)[rad[radtype]]])
     s, u = is_re(re)
@@ -209,11 +213,11 @@ def spec_analysis(month, re='r', radtype='swl', gmap=True, info=False):
     m = calendar(month)
     
     fig = plt.figure()
-    fig.suptitle(titles[rad[radtype]]+" "+s+" flux comparison for "
-                 +m[1]+" "+m[0], fontsize=16)
+    fig.suptitle('{0} {1} flux comparison for {2} {3}'
+                 .format(titles[rad[radtype]], s, m[1], m[0]), fontsize=16)
     
     ax = fig.add_subplot(2,2,1)
-    ax.set_title("Flux in "+m[1]+" "+m[0], fontsize=14)
+    ax.set_title('Flux in {0} {1}'.format(m[1], m[0]), fontsize=14)
     xx, yy, shflux = shift_grid(flux)
     if gmap: plot_map(xx, yy, shflux[0], u)
     
@@ -221,7 +225,7 @@ def spec_analysis(month, re='r', radtype='swl', gmap=True, info=False):
     for n in range(len(neighbours)):
         ax = fig.add_subplot(2,2,n+2)
         m2 = calendar(neighbours[n])
-        ax.set_title("Difference with "+m2[1]+" "+m2[0], fontsize=14)
+        ax.set_title('Difference with {0} {1}'.format(m2[1], m2[0]), fontsize=14)
         flux2 = np.array([loadflux(neighbours[n], re)[rad[radtype]]])
         fdiff = flux - flux2
         xx, yy, fdiff = shift_grid(fdiff)
@@ -245,21 +249,21 @@ def analyse_month_mini(month, re='r', radtype='swl', export=False):
     m = calendar(month)
     
     fig = plt.figure()
-    fig.suptitle(titles[rad[radtype]]+" "+s+" flux comparison for "+m[1],
-                 fontsize=16)
+    fig.suptitle('{0} {1} flux comparison for {2}'
+                 .format(titles[rad[radtype]], s, m[1]), fontsize=16)
     
     ax = fig.add_subplot(2,2,1)
-    ax.set_title("Flux in "+m[1]+" "+yr[0], fontsize=14)
+    ax.set_title('Flux in {0} {1}'.format(m[1], yr[0]), fontsize=14)
     xx, yy, shflux = shift_grid(flux)
     plot_map(xx, yy, shflux[0], u)
     
     ax2 = fig.add_subplot(2,2,2)
-    ax2.set_title("Flux in "+m[1]+" "+yr[1], fontsize=14)
+    ax2.set_title('Flux in {0} {1}'.format(m[1], yr[1]), fontsize=14)
     xx, yy, shflux2 = shift_grid(flux2)
     plot_map(xx, yy, shflux2[0], u)
     
     axd = fig.add_subplot(2,2,3)
-    axd.set_title("Difference in flux", fontsize=14)
+    axd.set_title('Difference in flux', fontsize=14)
     xx, yy, shfluxd = shift_grid(flux2-flux)
     plot_map(xx, yy, shfluxd[0], u)
     
@@ -267,7 +271,8 @@ def analyse_month_mini(month, re='r', radtype='swl', export=False):
     plt.subplots_adjust(top=0.925)
     
     if export:
-        fig.savefig('datasets/maps/%s_%s_%s.png' % (re,radtype,month[2:]))
+        fig.savefig('datasets/maps/{0}_{1}_{2}.png'
+                    .format(re,radtype,month[2:]))
         plt.close(fig)
 
 def export(year):
@@ -281,15 +286,18 @@ def export(year):
         analyse_month_mini(m, re='e', radtype='swl', export=True)
         analyse_month_mini(m, re='e', radtype='lwc', export=True)
         analyse_month_mini(m, re='e', radtype='lw', export=True)
-        print 'DONE ', m
+        print 'DONE', m
 
 #analyse_month_mini('0010', re='e', radtype='lw', export=False)
 #plot_diff('9907','9908', loadflux('9907', 'e'), re='e')
-#suma, dflux, ddiff = analyse_month('9902', re='r', diff=['9902','0004'], gmap=False, info=True)
-#fdiffs = spec_analysis('9902', 'r', 'lw',True,True)
+suma, dflux, ddiff = analyse_month('9902', re='r', diff=['9902','0004'], gmap=False, info=True)
+print suma
+print dflux
+print ddiff
+#fdiffs = spec_analysis('9902', 'r', 'lw',gmap=True,info=True)
 #print fdiffs
 #m=months_in_year(2099)
-#_analysis(m[8], 'e', 'lwc')
+#spec_analysis(m[8], 'e', 'lwc')
 plt.show()
 
 

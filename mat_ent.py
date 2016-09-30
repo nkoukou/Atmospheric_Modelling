@@ -1,6 +1,6 @@
 '''
 This module reads libradtran output and calculates material entropy. It is an 
-adaptation of entropy_budget_SW2.pro and entropy_budget_LW2.pro.
+adaptation of IDL code entropy_budget_SW2.pro and entropy_budget_LW2.pro.
 '''
 
 import numpy as np
@@ -8,7 +8,7 @@ from numpy import nan_to_num as nn
 import matplotlib.pylab as plt
 import matplotlib.ticker as mtk
 import scipy.interpolate as sci
-from glob_ent import find_nans
+from glob_ent import find_nans # used for debugging
 
 # Physical constants
 c=2.998e8       # m s^-1
@@ -62,7 +62,11 @@ def ent_flux(wvn, rad, angle='dir'):
     '''
     Converts intensity to entropy flux with units W m^-2 m K^-1.
     
-    Taylor approximation is used as in ent_datasets.py.
+    The radiation to entropy conversion follows formula 8 in 'Wu and Liu: 
+    Radiation Entropy Flux, published 14/05/2010'.
+    
+    Approximates ln(1+y) ~ y - y*y/2 + y**3/3 (Maclaurin) for y < 1.0e-2 to 
+    account for miscalculation of the np.log function (1.0e-2 is arbitrary).
     '''
     if angle=='dir': ang = omega0
     elif angle=='diff': ang = pi
@@ -81,7 +85,7 @@ def ent_flux(wvn, rad, angle='dir'):
 def deriv(z, rad):
     '''
     Evaluates derivative of radiation flux or entropy with respect to altitude 
-    using B-splines (1D z array and 2D rad array).
+    using B-spline representation (1D z array and 2D rad array).
     '''
     derv=np.zeros(rad.shape)
     for i in range(rad.shape[0]):
@@ -121,13 +125,13 @@ def sdot_calc(quants, debug=False):
 # Plots - to be used only via the flux_output function
 def _plot_vertical(z, quant, tu):
     '''
-    Plots a spectrally integrated quantity over all altitudes.
+    Plots only a spectrally integrated quantity over all altitudes.
     
     Parameter tu is a tuple of titles and units associated with the quants. 
     It is provided when the function runs from within flux_output().
     '''
+    plt.figure()
     ts, us = tu
-    fig = plt.figure()
     plt.plot(z/1000, ts[quant])
     plt.title('{0}'.format(quant))
     plt.xlabel('$z\ (km)$')
@@ -135,10 +139,10 @@ def _plot_vertical(z, quant, tu):
 
 def _plot_levels(wvn, z, quants, tu, levels=[25]):
     '''
-    Plots given quantities (e.g. [edir, eup, edn]) at given altitude levels 
-    (0-25) over all wavenumbers. Every plot displays all quants at a specific 
-    level. If only one quant is provided it is plotted on one plot for all 
-    levels.
+    Plots given three quantities (['edir', 'eup', 'edn'] or ['entdir', 'entup', 
+    'entdn'] only) at given altitude levels (0-25) over all wavenumbers. Every 
+    plot displays all quants at a specific level. If only one quant is provided 
+    it is plotted on one plot for all levels.
     
     Parameter tu is a tuple of titles and units associated with the quants. 
     It is provided when the function runs from within flux_output().
@@ -147,6 +151,7 @@ def _plot_levels(wvn, z, quants, tu, levels=[25]):
     ts, us = tu
     
     if len(quants)==1:
+        fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
         for lev in levels:
             ax.plot(wvn, ts[quants[0]][:,lev], label='{0:.3f} km'
@@ -166,7 +171,7 @@ def _plot_levels(wvn, z, quants, tu, levels=[25]):
             ax.set_title('Altitude {0:.3f} km'.format(z[lev]/1000))
             ax.set_xlabel('$Wavenumber\ (m^{-1})$')
             ax.set_ylabel('${0}$'.format(us[quants[0]]))
-            ax.yaxis.set_major_formatter(mtk.FormatStrFormatter('%.2f'))
+            ax.yaxis.set_major_formatter(mtk.FormatStrFormatter('%.2E'))
             ax.legend(loc='upper right')
             plt.tight_layout()
 
@@ -291,5 +296,6 @@ def flux_output(filename, radtype='sw', z_plots=[], lev_plots=[], levels=[0,25])
               .format('spec_int', Fup[-1], Fdir[-1], Jup[-1], Jdir[-1]))
     toa.close()
 
-
-
+#flux_output('0solar_rep', radtype='sw', z_plots=['Q', 'Qcheck', 'sdot', 
+#'sdotr', 'sdotm'], lev_plots=['edir', 'edn', 'eup'], levels=[0,12,25])
+#plt.show()

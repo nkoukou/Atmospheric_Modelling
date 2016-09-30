@@ -6,7 +6,6 @@ input for the libradtran code.
 from netCDF4 import Dataset
 import numpy as np
 from numpy import sin, cos, tan
-import matplotlib.pylab as plt
 
 # Physical constants and pi
 pi = np.pi
@@ -52,10 +51,10 @@ def avgnetcdf(month, years=[500,550], control=True):
     for var in end.variables.keys():
         varr = end.variables[var]
         new = dataset.createVariable(var, varr.dtype, varr.dimensions)
-        if not var.isupper(): # !!! add units with try&except
-            new[:] = varr[:]
+        if not var.isupper():
+            new[:] = varr[:] # unimportant variables - no units
             continue
-        new.units = varr.units
+        new.units = varr.units # important variables - they have units
         new[:] = varr[:]/count
         for yr in yrs:
             temp = loadnetcdf(year=yr, month=month, control=control)
@@ -85,6 +84,9 @@ def select_avg(month, control=True):
 
 # Testing data
 def show_vars(filename):
+    '''
+    Prints all variable names and shapes
+    '''
     for var in filename.variables.keys():
         print var, filename.variables[var].shape
 
@@ -155,6 +157,9 @@ def sza_calc(dataset, nlat):
     (day 80 since start of the year).
     
     Standard spherical geometry is used for the rest of the calculations.
+    
+    May produce nan for extreme latitude values because of the nature of 
+    Sun's apparent motion there.
     '''
     lat, time = grid(dataset)[0], grid(dataset)[-1]
     lat = np.radians(lat[nlat])
@@ -252,6 +257,8 @@ def libra_input(dataset, nlat, nlon, wvl=[250, 5000], source='solar',
     Creates a libradtran input file along with the other necessary files 
     corresponding to the dataset and the (lat, lon) coordinates.
     
+    (nlan, nlon) are the indeces of the lat and lon array respectively.
+    
     reptran and lowtran are used for solar (SW radiation => edir != 0) and 
     thermal (LW radiation => edir==0) calculations respectively.
     
@@ -262,8 +269,6 @@ def libra_input(dataset, nlat, nlon, wvl=[250, 5000], source='solar',
     
     Parameter error corresponds to the error handling during the execution of 
     the libradtran code.
-    
-    !!! try kato, do I just double CO2 for experiment?
     '''
     inp = open("libradtran/test.inp", 'w')
     
@@ -326,29 +331,7 @@ def libra_input(dataset, nlat, nlon, wvl=[250, 5000], source='solar',
     inp.write('{0}\n'.format(error))
     inp.close()
 
-libra_input(n, 30, 60, wvl=[250, 5000], source='solar', species=['H2O'], 
-            clouds=True, control=False, error='verbose')
-
-
-
-'''
-m = loadnetcdf(4,500)
-n=select_avg(4,False)
-#show_vars(n)
-#diff=m500.variables['PS'][0]+m525.variables['PS'][0]+m550['PS'][0]-3*n['PS'][0]
-#minn = diff.min()/m550.variables['PS'][0]; maxx=diff.max()/m550.variables['PS'][0]
-#print minn.max(), maxx.max()
-#print m1.variables['CLOUD'][0][:,40,67]
-#print m550.variables['hybm'][:] - m525.variables['hybm'][:]
-#print '---------'
-#print n.variables['T'][:].shape
-#for i in range(14,21):
-#    x=m1.variables['Z3'][0][i,:,80]
-#    plt.plot(lat, x)
-#plt.show()
-#print Deltah.mean(axis=(1,2))/Deltah.std(axis=(1,2))
-'''
-
-
+#libra_input(n, 30, 60, wvl=[250, 5000], source='solar', species=['H2O'], 
+#            clouds=True, control=False, error='verbose')
 
 

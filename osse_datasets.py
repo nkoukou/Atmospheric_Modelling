@@ -63,37 +63,37 @@ core = "/b30.042a.cam2.h0.20"
 for m in range(1,13):
     mstr = str(m).zfill(2)
     
-    sw00dir = "osse_sw/2000%s00-%s.sav" % (core, mstr)
-    lw00dir = "osse_lw/2000%s00-%s.sav" % (core, mstr)
-    swl00dir = "osse_sw/2000%s00-%s_lres.sav" % (core, mstr)
-    lwc00dir = "osse_lw/2000%s00-%s_clrsky.sav" % (core, mstr)
-    sw99dir = "osse_sw/2099%s99-%s.sav" % (core, mstr)
-    lw99dir = "osse_lw/2099%s99-%s.sav" % (core, mstr)
-    swl99dir = "osse_sw/2099%s99-%s_lres.sav" % (core, mstr)
-    lwc99dir = "osse_lw/2099%s99-%s_clrsky.sav" % (core, mstr)
+    sw00dir = "osse_sw/2000{0}00-{1}.sav".format(core, mstr)
+    lw00dir = "osse_lw/2000{0}00-{1}.sav".format(core, mstr)
+    swl00dir = "osse_sw/2000{0}00-{1}_lres.sav".format(core, mstr)
+    lwc00dir = "osse_lw/2000{0}00-{1}_clrsky.sav".format(core, mstr)
+    sw99dir = "osse_sw/2099{0}99-{1}.sav".format(core, mstr)
+    lw99dir = "osse_lw/2099{0}99-{1}.sav".format(core, mstr)
+    swl99dir = "osse_sw/2099{0}99-{1}_lres.sav".format(core, mstr)
+    lwc99dir = "osse_lw/2099{0}99-{1}_clrsky.sav".format(core, mstr)
     
     fid = readsav(sw00dir, python_dict=True)['sw_rad']
-    name = 'datasets/sw00%s' % (mstr)
+    name = 'datasets/sw00{0}'.format(mstr)
     np.save(name,fid)
     fid = readsav(lw00dir, python_dict=True)['lw_rad']
-    name = 'datasets/lw00%s' % (mstr)
+    name = 'datasets/lw00{0}'.format(mstr)
     np.save(name,fid)
     fid = readsav(swl00dir, python_dict=True)['sw_rad_lres']
-    name = 'datasets/lres_sw00%s' % (mstr)
+    name = 'datasets/lres_sw00{0}'.format(mstr)
     np.save(name,fid)
     fid = readsav(lwc00dir, python_dict=True)['lw_rad']
-    name = 'datasets/clr_lw00%s' % (mstr)
+    name = 'datasets/clr_lw00{0}'.format(mstr)
     np.save(name,fid)
     fid = readsav(sw99dir, python_dict=True)['sw_rad']
-    name = 'datasets/sw99%s' % (mstr)
+    name = 'datasets/sw99{0}'.format(mstr)
     np.save(name,fid)
     fid = readsav(lw99dir, python_dict=True)['lw_rad']
-    name = 'datasets/lw99%s' % (mstr)
+    name = 'datasets/lw99{0}'.format(mstr)
     np.save(name,fid)
     fid = readsav(swl99dir, python_dict=True)['sw_rad_lres']
-    name = 'datasets/lres_sw99%s' % (mstr)
+    name = 'datasets/lres_sw99{0}'.format(mstr)
     np.save(name,fid)
     fid = readsav(lwc99dir, python_dict=True)['lw_rad']
-    name = 'datasets/clr_lw99%s' % (mstr)
+    name = 'datasets/clr_lw99{0}'.format(mstr)
     np.save(name,fid)
 

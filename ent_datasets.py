@@ -23,11 +23,11 @@ def loadrad(month, lc=False):
     SW radiation is corrected by a factor of 1000 if not lres.
     '''
     if not lc:
-        sw = 1000*np.load('datasets/sw%s.npy' % (month)) # uW cm^-2 sr^-1 nm^-1
-        lw = np.load('datasets/lw%s.npy' % (month))      # W cm^-2 sr^-1 cm
+        sw = 1000*np.load('datasets/sw{0}.npy'.format(month)) # uW cm^-2 sr^-1 nm^-1
+        lw = np.load('datasets/lw{0}.npy'.format(month))      # W cm^-2 sr^-1 cm
     elif lc:
-        sw = np.load('datasets/lres_sw%s.npy' % (month)) # uW cm^-2 sr^-1 nm^-1
-        lw = np.load('datasets/clr_lw%s.npy' % (month))  # W cm^-2 sr^-1 cm
+        sw = np.load('datasets/lres_sw{0}.npy'.format(month)) # uW cm^-2 sr^-1 nm^-1
+        lw = np.load('datasets/clr_lw{0}.npy'.format(month))  # W cm^-2 sr^-1 cm
     return sw, lw
 
 # Physical constants
@@ -36,9 +36,9 @@ kb=1.38e-23 # kg m^2 s^-2 K^-1
 h=6.626e-34 # J s = kg m^2 s^-1
 
 # Conversion functions
-def radtorad(rad,radtype='sw'):
+def radtorad(rad, radtype='sw'):
     '''
-    Converts radiation intensity to units W m^-2 sr^-1 nm^-1
+    Converts radiation intensity from loadrad() to units W m^-2 sr^-1 nm^-1.
     '''
     if radtype=='sw':
         rconst = 1.0e-2
@@ -47,14 +47,14 @@ def radtorad(rad,radtype='sw'):
         rconst = rconst[:,None,None]
     return rconst*rad
 
-def radtoent(rad,radtype='sw',lc=True):
+def radtoent(rad, radtype='sw', lc=True):
     '''
     Converts array of radiation intensity to array of entropy according to 
     formula 8 in 'Wu and Liu: Radiation Entropy Flux, published 14/05/2010'. 
     Approximates ln(1+y) ~ y - y*y/2 + y**3/3 (Maclaurin) for y < 1.0e-2 to 
     account for miscalculation of the np.log function (1.0e-2 is arbitrary).
     
-    Needs radiation in W m^-2 sr^-1 m. 
+    Needs radiation directly from loadrad(). 
     Returns entropy in mW m^-2 sr^-1 K^-1 nm^-1.
     '''
     if radtype=='sw':
@@ -79,46 +79,32 @@ def radtoent(rad,radtype='sw',lc=True):
     ent = np.where(y!=0.0, econst*2*kb*c*wvn*wvn*(ent1+ent2), 0.0)
     return ent
 
-def rad_flux(rad,radtype='sw',lc=True):
+def rad_flux(rad, radtype='sw', lc=True):
     '''
-    Integrates radiation intensity over wavelength to get radiative flux. 
-    The units are W m^-2 sr^-1.
+    Integrates radiation intensity over wavelength to get radiative flux.
+    Needs radiation directly from loadrad(). Returns flux in W m^-2 sr^-1.
     '''
     if radtype=='sw':
-        if not lc: wvl = wvlen
+        if not lc: wvl = -wvlen
         elif lc: wvl = wvlen_lres
     elif radtype=='lw':
-        wvl = wvlen_num
-    n = len(wvl)-1
-    wvl = wvl[:,None,None]
+        wvl = -wvlen_num
     rad = radtorad(rad,radtype)
-    
-    flux = rad[0]*(wvl[0]-wvl[1])+rad[n]*(wvl[n-1]-wvl[n])
-    for i in range(1,n-1):
-        flux += 0.5*rad[i]*(wvl[i-1]-wvl[i+1])
-    # lres sw rad has wavelength in reverse order
-    if radtype=='sw' and lc: flux = -flux
+    flux = np.trapz(rad, wvl, axis=0)
     return flux
 
-def ent_flux(rad,radtype='sw',lc=True):
+def ent_flux(rad, radtype='sw', lc=True):
     '''
     Integrates entropy intensity over wavelength to get entropy flux. 
-    The units are mW m^-2 sr^-1 K^-1.
+    Needs radiation directly from loadrad(). Returns flux in mW m^-2 sr^-1 K^-1.
     '''
     if radtype=='sw':
-        if not lc: wvl = wvlen
+        if not lc: wvl = -wvlen
         elif lc: wvl = wvlen_lres
     elif radtype=='lw':
-        wvl = wvlen_num
-    n = len(wvl)-1
-    wvl = wvl[:,None,None]
-    ent = radtoent(rad,radtype,lc)
-    
-    flux = ent[0]*(wvl[0]-wvl[1])+ent[n]*(wvl[n-1]-wvl[n])
-    for i in range(1,n-1):
-        flux += 0.5*ent[i]*(wvl[i-1]-wvl[i+1])
-    # lres sw rad has wavelength in reverse order
-    if radtype=='sw' and lc: flux = -flux
+        wvl = -wvlen_num
+    ent = radtoent(rad, radtype, lc)
+    flux = np.trapz(ent, wvl, axis=0)
     return flux
 
 def flux_month(month, re='r', lc=False):
@@ -154,15 +140,15 @@ def export_all(yr, lc=False):
     '''
     for m in months_in_year(yr):
         swr, lwr = flux_month(m,'r', lc)
-        print 'RAD %s' % (m)
+        print 'RAD {0}'.format(m)
         swe, lwe = flux_month(m,'e', lc)
         if not lc: spre,lpre='',''
         elif lc: spre,lpre='lres_','clr_'
-        np.save('datasets/flux/'+spre+'swr'+m, swr)
-        np.save('datasets/flux/'+lpre+'lwr'+m, lwr)
-        np.save('datasets/flux/'+spre+'swe'+m, swe)
-        np.save('datasets/flux/'+lpre+'lwe'+m, lwe)
-        print 'DONE %s' % (m)
+        np.save('datasets/flux/{0}swr{1}'.format(spre, m), swr)
+        np.save('datasets/flux/{0}lwr{1}'.format(lpre, m), lwr)
+        np.save('datasets/flux/{0}swe{1}'.format(spre, m), swe)
+        np.save('datasets/flux/{0}lwe{1}'.format(lpre, m), lwe)
+        print 'DONE {0}'.format(m)
 
 
 

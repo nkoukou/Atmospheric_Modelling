@@ -13,7 +13,6 @@ import matplotlib.cm as cm
 import calendar as cal
 
 # Load datasets
-# SW rad is corrected by a factor of 1000
 wvlen = np.load('datasets/wvlen.npy') # nm
 wvnum = np.load('datasets/wvnum.npy') # cm^-1
 wvlen_num = 1.0e7/wvnum               # nm
@@ -29,9 +28,9 @@ def loadgmrad(year):
     '''
     if year==2000: yr='00'
     elif year==2099: yr='99'
-    gm_sw_rad = 1000*np.load('datasets/gm_sw'+yr+'.npy')
-    gm_lw_rad = np.load('datasets/gm_lw'+yr+'.npy')
-    gm_clr_lw_rad = np.load('datasets/gm_clr_lw'+yr+'.npy')
+    gm_sw_rad = 1000*np.load('datasets/gm_sw{0}.npy'.format(yr))
+    gm_lw_rad = np.load('datasets/gm_lw{0}.npy'.format(yr))
+    gm_clr_lw_rad = np.load('datasets/gm_clr_lw{0}.npy'.format(yr))
     return gm_sw_rad, gm_lw_rad, gm_clr_lw_rad
 
 titles = ['SW', 'LW', 'clear sky LW']
@@ -126,12 +125,8 @@ def rad_flux(year=2000,radtype='SW'):
     elif radtype=='clear sky LW':
         wvl = wvlen_num
         rad = loadgmrad(year)[2]
-    n = len(wvl)-1
-    rad = radtorad(rad,radtype)
-    
-    flux = rad[0]*(wvl[0]-wvl[1])+rad[n]*(wvl[n-1]-wvl[n])
-    for i in range(1,n-1):
-        flux += 0.5*rad[i]*(wvl[i-1]-wvl[i+1])
+    rad = radtorad(rad, radtype)
+    flux = -np.trapz(rad, wvl, axis=0)
     return flux
 
 def ent_flux(year=2000,radtype='SW'):
@@ -148,12 +143,8 @@ def ent_flux(year=2000,radtype='SW'):
     elif radtype=='clear sky LW':
         wvl = wvlen_num
         rad = loadgmrad(year)[2]
-    n = len(wvl)-1
-    ent = radtoent(rad,radtype)
-    
-    flux = ent[0]*(wvl[0]-wvl[1])+ent[n]*(wvl[n-1]-wvl[n])
-    for i in range(1,n-1):
-        flux += 0.5*ent[i]*(wvl[i-1]-wvl[i+1])
+    ent = radtoent(rad, radtype)
+    flux = -np.trapz(ent, wvl, axis=0)
     return flux
 
 # Plot functions
@@ -168,8 +159,8 @@ def plot_year_rad(year):
         gm_tavg.append(tavg(gm_rad[i]))
         
     fig = plt.figure()
-    fig.suptitle('Global mean radiation for all months in year '+str(year),
-                 size=16)
+    fig.suptitle('Global mean radiation for all months in year {0}'
+                 .format(year), size=16)
     colors = cm.rainbow(np.linspace(0, 1, 12))
     for i in range(len(gm_rad)):
         axm = fig.add_subplot(3,2,2*i+1)
@@ -180,9 +171,9 @@ def plot_year_rad(year):
             axm.plot(wvln, gm_rad[i][:,month], color=colors[month], lw=0.2)
             axd.plot(wvln, gm_rad[i][:,month]-gm_tavg[i],
                      color=colors[month], lw=0.2)
-        axm.set_title('Mean '+title+' radiation', size=14)
-        axd.set_title('Deviation of '+title+' radiation from annual mean',
-                      size=14)
+        axm.set_title('Mean {0} radiation'.format(title), size=14)
+        axd.set_title('Deviation of {0} radiation from annual mean'
+                      .format(title), size=14)
         axm.set_xlabel(xu)
         axd.set_xlabel(xu)
         axm.yaxis.set_major_formatter(mtk.FormatStrFormatter('%.2e'))
@@ -199,7 +190,7 @@ def plot_month(month, re='r'):
     '''
     c = is_re(re)
     fig = plt.figure()
-    fig.suptitle('Global mean '+c+' for '+cal.month_name[month],
+    fig.suptitle('Global mean {0} for {1}'.format(c, cal.month_name[month]), 
                  size=16)
     for i in range(len(titles)):
         axm = fig.add_subplot(3,2,2*i+1)
@@ -215,7 +206,8 @@ def plot_month(month, re='r'):
         axm.plot(wvln, gm00, color='b', lw=0.5, label='2000')
         axm.plot(wvln, gm99, color='g', lw=0.5, label='2099')
         axd.plot(wvln, gm99-gm00, color='r', lw=0.5)
-        axm.set_title(title+' '+c+' for years 2000 and 2099', size=14)
+        axm.set_title('{0} {1} for years 2000 and 2099'.format(title, c), 
+                      size=14)
         axd.set_title('Difference between 2000 and 2099', size=14)
         axm.set_xlabel(xu)
         axd.set_xlabel(xu)
@@ -263,8 +255,8 @@ def plot_flux(radtype='SW'):
     axrd.set_ylabel('$\Delta F\ (W\ m^{-2}\ sr^{-1})$')
     axe.set_ylabel('$J\ (mW\ m^{-2}\ sr^{-1}\ K^{-1})$')
     axed.set_ylabel('$\Delta J\ (mW\ m^{-2}\ sr^{-1}\ K^{-1})$')
-    leg = axr.legend(loc='upper right')
-    leg = axe.legend(loc='upper right')
+    axr.legend(loc='upper right')
+    axe.legend(loc='upper right')
     plt.tight_layout()
     plt.subplots_adjust(top=0.925)
 
@@ -289,19 +281,19 @@ def plot_year_diff(month, radtype='SW'):
     wvlog = np.log(wvl)
     
     fig, ((axr,axrd),(axe,axed)) = plt.subplots(2,2)
-    fig.suptitle(radtype+' entropy and radiation flux in '
-                 +cal.month_name[month], size=16)
+    fig.suptitle('{0} entropy and radiation flux in {1}'
+                 .format(radtype, cal.month_name[month]), size=16)
     axr.plot(wvlog,wvl*rad00,color='b', label='2000')
     axr.plot(wvlog,wvl*rad99,color='g', label='2099')
     axe.plot(wvlog,wvl*ent00,color='b', label='2000')
     axe.plot(wvlog,wvl*ent99,color='g', label='2099')
-    axrd.plot(wvlog,wvl*(rad99-rad00),color='r')
-    axed.plot(wvlog,wvl*(ent99-ent00),color='r')
+    axrd.plot(wvlog,wvl*(rad99-rad00), color='r')
+    axed.plot(wvlog,wvl*(ent99-ent00), color='r')
     
-    axr.set_title(radtype+' radiation',size=12)
-    axe.set_title('Entropy of '+radtype+' radiation',size=12)
+    axr.set_title('{0} radiation'.format(radtype), size=12)
+    axe.set_title('Entropy of {0} radiation'.format(radtype), size=12)
     axrd.set_title('Difference between 2000 and 2099', size=12)
-    axed.set_title('Difference between 2000 and 2099',size=12)
+    axed.set_title('Difference between 2000 and 2099', size=12)
     xu = '$log\ \lambda$'
     yur = '$\lambda I\ (W\ m^{-2}\ sr^{-1})$'
     yue = '$\lambda L\ (mW\ m^{-2}\ sr^{-1}\ K^{-1})$'
@@ -324,13 +316,12 @@ def plot_type_diff(month, year):
     fig, ax = plt.subplots(1,1)
     ax.plot(np.log(wvlen),srad,color='b', label='SW')
     ax.plot(np.log(wvlen_num),lrad,color='g', label='LW')
-    ax.set_title('SW and LW radiation flux for '+cal.month_name[month]+' '
-                 +str(year))
+    ax.set_title('SW and LW radiation flux for {0} {1}'
+                 .format(cal.month_name[month], year))
     ax.set_xlabel('$log\ \lambda$')
     ax.set_ylabel('$F\ (W\ m^{-2}\ sr^{-1})$')
     ax.legend(loc='upper right')
 
-#plot_swvslw(4,2099)
 #plot_month(11,'e')
 #plot_year_diff(12, 'LW')
 #plot_type_diff(9,2099)
