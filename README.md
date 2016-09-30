@@ -25,6 +25,7 @@ performed based on the libradtran output fluxes and, in particular, estimates
 of the total material entropy of the Earth were calculated. The calculations 
 can be used to investigate the impact of CO_2 on Earth's entropy. The relevant 
 python modules developed are 5-6 as listed below.
+
 -------
 ## Modules
 
@@ -36,6 +37,7 @@ Descriptions can be found at the top of each module.
 4. glob_entropy.py
 5. ccsm_datasets.py
 6. mat_ent.py
+
 -------
 ## Important notes (listed by module)
 
@@ -85,6 +87,7 @@ Descriptions can be found at the top of each module.
 
 Examples of important functions are commented out at the bottom of each script. 
 Function arguments are explained in the documentation of the function.
+
 -------
 ToDo:
 
