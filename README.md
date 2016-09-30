@@ -89,6 +89,7 @@ Examples of important functions are commented out at the bottom of each script.
 Function arguments are explained in the documentation of the function.
 
 In order to use modules 5 and 6 together:
+
 1. Run module 5 in nkoukou/ directory. Files are saved in libradtran/
 2. cd libradtran/
 3. ../uvspec < test.inp > some_filename.out (runs libradtran code)
