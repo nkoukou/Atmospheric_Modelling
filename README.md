@@ -93,7 +93,7 @@ In order to use modules 5 and 6 together:
 1. Run module 5 in nkoukou/ directory. Files are saved in libradtran/
 2. cd libradtran/
 3. ../uvspec < test.inp > some_filename.out (runs libradtran code)
-4. Run module 6 in nkoukou/
+4. Run module 6 in nkoukou/ with some_filename.out as input
 5. ???
 6. Profit
 
@@ -104,6 +104,6 @@ ToDo:
 2. Module 4: Re-export graphs (colorbar consistency, framing)
 3. Module 5: Check time evolution between years 500 and 550, add more years for 
    averaging
-4. Modules 5,6: write bash script to run code for many lat & lon & months and 
+4. Modules 5, 6: write bash script to run code for many lat & lon & months and 
    run the libradtran code in between. This would help automate material entropy
    calculations.
