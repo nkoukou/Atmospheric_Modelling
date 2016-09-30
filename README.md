@@ -18,8 +18,8 @@ The second part focused on CCSM3 runs b30.031 and b30.032a which are a control
 run and a run with double CO_2 concentration respectively. An atmospheric model 
 was produced at a 3D grid (latitude, longitude, altitude) based on data from 
 the runs. The model considers solar radiation, pressure, temperature, water 
-vapour, cloud properties etc. and was used as the input of the [libradtran 
-radiation code](www.libradtran.org/doku.php) which calculates direct and 
+vapour, cloud properties etc. and was used as the input of the 
+[libradtran radiation code](www.libradtran.org/doku.php) which calculates direct and 
 diffused fluxes based on the atmosheric profile. Finally, analysis was 
 performed based on the libradtran output fluxes and, in particular, estimates 
 of the total material entropy of the Earth were calculated. The calculations 
